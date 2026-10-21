@@ -1,6 +1,8 @@
 import { describe, expect, test } from "vitest";
 import {
   firstName,
+  formatCount,
+  formatDate,
   formatPercent,
   formatShortDate,
   isSmallSample,
@@ -20,6 +22,22 @@ describe("formatPercent", () => {
 
   test("uses German digit grouping", () => {
     expect(formatPercent(1234)).toBe("1.234\u00a0%");
+  });
+});
+
+describe("formatDate", () => {
+  test("formats an ISO date as German date with year", () => {
+    expect(formatDate("2026-04-25")).toBe("25.04.2026");
+    expect(formatDate("2026-01-01")).toBe("01.01.2026");
+  });
+});
+
+describe("formatCount", () => {
+  test("groups thousands with a dot", () => {
+    expect(formatCount(0)).toBe("0");
+    expect(formatCount(97)).toBe("97");
+    expect(formatCount(1843)).toBe("1.843");
+    expect(formatCount(11873)).toBe("11.873");
   });
 });
 

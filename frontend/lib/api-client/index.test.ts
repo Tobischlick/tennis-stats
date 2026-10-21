@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import type { PlayerStats, PlayerSummary } from "./types";
+import type { Overview, PlayerStats, PlayerSummary } from "./types";
 
 // openapi-fetch captures globalThis.fetch when the client is created at import time.
 const fetchMock = vi.hoisted(() => {
@@ -8,7 +8,7 @@ const fetchMock = vi.hoisted(() => {
   return mock;
 });
 
-import { getHeadToHead, getMatchesPage, getPlayerStats, getRecentMatches, searchPlayers } from "./index";
+import { getHeadToHead, getMatchesPage, getOverview, getPlayerStats, getRecentMatches, searchPlayers } from "./index";
 
 function respond(status: number, body?: unknown, headers: Record<string, string> = {}) {
   fetchMock.mockResolvedValueOnce(
@@ -107,5 +107,44 @@ describe("getMatchesPage", () => {
   test("throws when the total header is missing", async () => {
     respond(200, []);
     await expect(getMatchesPage("p1", 0, 50)).rejects.toThrow("X-Total-Count");
+  });
+});
+
+describe("getOverview", () => {
+  test("returns the body on 200", async () => {
+    const overview: Overview = {
+      hasData: false,
+      totals: {
+        players: 0,
+        clubs: 0,
+        teams: 0,
+        meetings: 0,
+        matches: { total: 0, singles: 0, doubles: 0 },
+        sets: 0,
+        firstPlayedOn: null,
+        lastPlayedOn: null,
+      },
+      funStats: {
+        tieBreaks: 0,
+        matchTieBreaks: 0,
+        completedMatches: 0,
+        decidingSetMatches: 0,
+        decidingSetPercentage: null,
+        mostCommonScoreLine: null,
+        longestWinStreak: 0,
+      },
+    };
+    respond(200, overview);
+    await expect(getOverview()).resolves.toEqual(overview);
+  });
+
+  test("throws on non-2xx responses", async () => {
+    respond(500);
+    await expect(getOverview()).rejects.toThrow("HTTP 500");
+  });
+
+  test("throws when the backend is unreachable", async () => {
+    fetchMock.mockRejectedValueOnce(new TypeError("fetch failed"));
+    await expect(getOverview()).rejects.toThrow("backend not reachable");
   });
 });

@@ -119,7 +119,7 @@ class TieBreakServiceTest {
         rubber2.addParticipant(opponent, Side.HOME);
         rubber2.addParticipant(player, Side.AWAY);
         rubber2.addSet(1, SetType.REGULAR, 3, 6);
-        rubber2.addSet(2, SetType.REGULAR, 7, 6).setTiebreakScore(5, 7); // player won this tiebreak
+        rubber2.addSet(2, SetType.REGULAR, 6, 7).setTiebreakScore(5, 7); // player won this tiebreak
         rubber2.addSet(3, SetType.MATCH_TIE_BREAK, 10, 7); // player lost this match tie-break
         meetingRepository.saveAndFlush(meeting2);
 
@@ -129,5 +129,38 @@ class TieBreakServiceTest {
         assertThat(stats.tieBreaksPlayed()).isEqualTo(4);
         assertThat(stats.tieBreaksWon()).isEqualTo(2);
         assertThat(stats.winRate()).isEqualTo(0.5);
+    }
+
+    @Test
+    void countsRegularSetsEndingSevenSixWithoutAStoredBreakerScore() {
+        Team home = teamRepository.save(new Team("TC Home"));
+        Team away = teamRepository.save(new Team("TC Away"));
+        Player player = playerRepository.save(new Player("Sina", "Sevensix"));
+        Player opponent = playerRepository.save(new Player("Other", "Opponent"));
+
+        // nuLiga reports regular tie-break sets as plain 7:6, so no breaker score is stored.
+        Meeting meeting1 = new Meeting(home, away, LocalDate.of(2026, 4, 1));
+        Rubber rubber1 = meeting1.addRubber(RubberType.SINGLES, 1);
+        rubber1.addParticipant(player, Side.HOME);
+        rubber1.addParticipant(opponent, Side.AWAY);
+        rubber1.addSet(1, SetType.REGULAR, 7, 6); // player won this tiebreak
+        rubber1.addSet(2, SetType.REGULAR, 6, 7); // player lost this tiebreak
+        rubber1.addSet(3, SetType.MATCH_TIE_BREAK, 10, 6); // player won this match tie-break
+        meetingRepository.saveAndFlush(meeting1);
+
+        Meeting meeting2 = new Meeting(home, away, LocalDate.of(2026, 4, 8));
+        Rubber rubber2 = meeting2.addRubber(RubberType.SINGLES, 1);
+        rubber2.addParticipant(opponent, Side.HOME);
+        rubber2.addParticipant(player, Side.AWAY);
+        rubber2.addSet(1, SetType.REGULAR, 6, 7); // player won this tiebreak
+        rubber2.addSet(2, SetType.REGULAR, 7, 5); // no tiebreak
+        rubber2.addSet(3, SetType.REGULAR, 6, 7).setTiebreakScore(3, 7); // player won this tiebreak
+        meetingRepository.saveAndFlush(meeting2);
+
+        TieBreakStats stats = tieBreakService.getTieBreakStats(player.getId());
+
+        assertThat(stats.tieBreaksPlayed()).isEqualTo(5);
+        assertThat(stats.tieBreaksWon()).isEqualTo(4);
+        assertThat(stats.winRate()).isEqualTo(0.8);
     }
 }

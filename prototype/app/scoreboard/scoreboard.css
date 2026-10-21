@@ -1,0 +1,61 @@
+.sb-root {
+  --sb-bg: #07090d;
+  --sb-panel: #0f141b;
+  --sb-panel-2: #151c25;
+  --sb-line: #222c38;
+  --sb-text: #eef2f6;
+  --sb-muted: #8391a2;
+  --sb-dim: #56627170;
+  --sb-win: #3dff8b;
+  --sb-win-soft: #3dff8b1f;
+  --sb-loss: #c46a6f;
+  --sb-loss-soft: #c46a6f1f;
+  --sb-amber: #ffc23d;
+
+  background: var(--sb-bg);
+  color: var(--sb-text);
+  font-family: var(--font-sb-sans), system-ui, sans-serif;
+  color-scheme: dark;
+}
+
+body:has(.sb-root) {
+  background: #07090d;
+}
+
+.sb-root .sb-num {
+  font-family: var(--font-sb-mono), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums slashed-zero;
+  letter-spacing: -0.02em;
+}
+
+.sb-root .sb-label {
+  font-family: var(--font-sb-display), var(--font-sb-sans), sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-weight: 600;
+}
+
+.sb-root .sb-display {
+  font-family: var(--font-sb-display), var(--font-sb-sans), sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.sb-root .sb-led {
+  box-shadow: 0 0 10px currentColor;
+}
+
+.sb-root .sb-scanlines {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 3px,
+    rgb(255 255 255 / 0.018) 3px,
+    rgb(255 255 255 / 0.018) 4px
+  );
+}
+
+.sb-root :focus-visible {
+  outline: 2px solid var(--sb-amber);
+  outline-offset: 2px;
+}

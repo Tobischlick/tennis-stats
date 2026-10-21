@@ -1,0 +1,562 @@
+openapi: 3.0.3
+info:
+  title: Tennis Stats API
+  description: >
+    Player search and player stats API for Tennis Stats. Consumed by the
+    frontend to generate a typed client; implemented by the backend `api`
+    package (see docs/arc42/05_building_block_view/building_block_view.md).
+  version: 0.1.0
+servers:
+  - url: /api/v1
+
+security: [] # no auth in v1 — see docs/arc42/01_introduction_and_goals/vision.md non-goals
+
+tags:
+  - name: players
+    description: Player search and player stats.
+
+paths:
+  /players:
+    get:
+      operationId: searchPlayers
+      tags: [players]
+      summary: Search players by name
+      description: >
+        Journeys: scouting an opponent, head-to-head lookup, casual browsing
+        all start here.
+      parameters:
+        - name: query
+          in: query
+          required: true
+          description: Name (or partial name) to search for.
+          schema:
+            type: string
+            minLength: 1
+      responses:
+        "200":
+          description: Matching players, ordered by relevance. Empty array if none match.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PlayerSummary"
+              example:
+                - id: "a1b2c3"
+                  name: "Anna Schmidt"
+                  club: "TC Blau-Weiss Karlsruhe"
+                - id: "d4e5f6"
+                  name: "Anna Schuster"
+                  club: "TC Rot-Gelb Heidelberg"
+        "400":
+          description: Missing or invalid query parameter.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /players/{id}/stats:
+    get:
+      operationId: getPlayerStats
+      tags: [players]
+      summary: Get a player's win/loss, tie-break, streak and deciding-set stats
+      description: >
+        Journeys: scouting an opponent, checking your own progress, casual
+        browsing. When the player exists but has no crawled matches yet,
+        `hasEnoughData` is `false` and the stat blocks are omitted rather
+        than showing zeroes — see PlayerStats schema.
+      parameters:
+        - $ref: "#/components/parameters/PlayerId"
+      responses:
+        "200":
+          description: Player stats, or a "not enough data yet" response.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlayerStats"
+              examples:
+                withData:
+                  summary: Player with crawled match history
+                  value:
+                    playerId: "a1b2c3"
+                    player:
+                      id: "a1b2c3"
+                      name: "Anna Schmidt"
+                      club: "TC Blau-Weiss Karlsruhe"
+                    matchesPlayed: 42
+                    hasEnoughData: true
+                    record:
+                      wins: 27
+                      losses: 15
+                      winPercentage: 64.3
+                    tieBreak:
+                      tieBreaksPlayed: 11
+                      tieBreaksWon: 4
+                      tieBreakWinPercentage: 36.4
+                    streak:
+                      current:
+                        result: WIN
+                        count: 3
+                      recentResults: [WIN, WIN, WIN, LOSS, WIN]
+                    decidingSet:
+                      played: 9
+                      won: 5
+                      winPercentage: 55.6
+                notEnoughData:
+                  summary: Player exists but has no crawled matches yet
+                  value:
+                    playerId: "g7h8i9"
+                    player:
+                      id: "g7h8i9"
+                      name: "Clara Weber"
+                      club: null
+                    matchesPlayed: 0
+                    hasEnoughData: false
+                    record: null
+                    tieBreak: null
+                    streak: null
+                    decidingSet: null
+        "404":
+          description: No player with this id.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /players/{id}/head-to-head/{opponentId}:
+    get:
+      operationId: getHeadToHead
+      tags: [players]
+      summary: Get the head-to-head record between two players
+      description: >
+        Journey 3 (head-to-head lookup). A dedicated endpoint rather than a
+        query param on /players/{id}/stats, since it's keyed on a pair of
+        players and returns its own "not enough data yet" shape when the two
+        have never played each other (as opposed to one player having no
+        matches at all).
+      parameters:
+        - $ref: "#/components/parameters/PlayerId"
+        - name: opponentId
+          in: path
+          required: true
+          description: Id of the opponent to compare against.
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Head-to-head record, or a "not enough data yet" response.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HeadToHead"
+              examples:
+                withData:
+                  summary: Players have met before
+                  value:
+                    playerId: "a1b2c3"
+                    player:
+                      id: "a1b2c3"
+                      name: "Anna Schmidt"
+                      club: "TC Blau-Weiss Karlsruhe"
+                    opponentId: "d4e5f6"
+                    opponent:
+                      id: "d4e5f6"
+                      name: "Anna Schuster"
+                      club: "TC Rot-Gelb Heidelberg"
+                    matchesPlayed: 3
+                    hasEnoughData: true
+                    record:
+                      wins: 2
+                      losses: 1
+                      winPercentage: 66.7
+                    recentResults: [WIN, LOSS, WIN]
+                notEnoughData:
+                  summary: These two have never played each other (yet)
+                  value:
+                    playerId: "a1b2c3"
+                    player:
+                      id: "a1b2c3"
+                      name: "Anna Schmidt"
+                      club: "TC Blau-Weiss Karlsruhe"
+                    opponentId: "z9y8x7"
+                    opponent:
+                      id: "z9y8x7"
+                      name: "Ben Meier"
+                      club: null
+                    matchesPlayed: 0
+                    hasEnoughData: false
+                    record: null
+                    recentResults: []
+        "404":
+          description: One or both player ids don't exist.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /players/{id}/matches:
+    get:
+      operationId: getRecentMatches
+      tags: [players]
+      summary: Get a player's most recent matches with opponents and set scores
+      description: >
+        Journeys: scouting an opponent, checking your own progress. Lists
+        the player's singles and doubles rubbers, newest first, from the
+        player's perspective. Rubbers whose sets don't settle a winner are
+        left out, so the list lines up with `streak.recentResults` on
+        /players/{id}/stats (same matches, same order).
+      parameters:
+        - $ref: "#/components/parameters/PlayerId"
+        - name: limit
+          in: query
+          required: false
+          description: Maximum number of matches to return.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 10
+            default: 10
+      responses:
+        "200":
+          description: The player's most recent matches, newest first. Empty array if the player has none.
+          content:
+            application/json:
+              schema:
+                type: array
+                maxItems: 10
+                items:
+                  $ref: "#/components/schemas/RecentMatch"
+              examples:
+                withMatches:
+                  summary: A doubles win and a singles loss in a match tie-break
+                  value:
+                    - playedOn: "2026-05-10"
+                      type: DOUBLES
+                      result: WIN
+                      opponents:
+                        - id: "d4e5f6"
+                          name: "Anna Schuster"
+                          club: "TC Rot-Gelb Heidelberg"
+                        - id: "j1k2l3"
+                          name: "Lena Vogt"
+                          club: "TC Rot-Gelb Heidelberg"
+                      partner:
+                        id: "m4n5o6"
+                        name: "Clara Wolf"
+                        club: "TC Blau-Weiss Karlsruhe"
+                      ownTeam: "TC Blau-Weiss Karlsruhe 1"
+                      opponentTeam: "TC Rot-Gelb Heidelberg 1"
+                      sets:
+                        - { own: 6, opponent: 2, ownTieBreak: null, opponentTieBreak: null, matchTieBreak: false }
+                        - { own: 7, opponent: 6, ownTieBreak: 7, opponentTieBreak: 4, matchTieBreak: false }
+                    - playedOn: "2026-05-03"
+                      type: SINGLES
+                      result: LOSS
+                      opponents:
+                        - id: "d4e5f6"
+                          name: "Anna Schuster"
+                          club: "TC Rot-Gelb Heidelberg"
+                      partner: null
+                      ownTeam: "TC Blau-Weiss Karlsruhe 1"
+                      opponentTeam: "TC Rot-Gelb Heidelberg 1"
+                      sets:
+                        - { own: 6, opponent: 4, ownTieBreak: null, opponentTieBreak: null, matchTieBreak: false }
+                        - { own: 3, opponent: 6, ownTieBreak: null, opponentTieBreak: null, matchTieBreak: false }
+                        - { own: 8, opponent: 10, ownTieBreak: null, opponentTieBreak: null, matchTieBreak: true }
+                noMatches:
+                  summary: Player exists but has no crawled matches yet
+                  value: []
+        "400":
+          description: "`limit` is not an integer from 1 to 10."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: No player with this id.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  parameters:
+    PlayerId:
+      name: id
+      in: path
+      required: true
+      description: Id of the player.
+      schema:
+        type: string
+
+  schemas:
+    PlayerSummary:
+      type: object
+      description: >
+        Lightweight player identity: search results, and the header of the
+        stats and head-to-head responses.
+      required: [id, name]
+      properties:
+        id:
+          type: string
+          description: Stable player id, used in stats/head-to-head lookups.
+        name:
+          type: string
+          example: "Anna Schmidt"
+        club:
+          type: string
+          nullable: true
+          description: >
+            Club of the team the player played for in their most recent
+            stored meeting, i.e. that team's name without the trailing team
+            number ("TC Weinheim 1902 2" → "TC Weinheim 1902"). Updates with
+            the next crawled meeting after a club change. `null` if no meeting
+            of the player is stored.
+          example: "TC Blau-Weiss Karlsruhe"
+
+    WinLossRecord:
+      type: object
+      required: [wins, losses, winPercentage]
+      properties:
+        wins:
+          type: integer
+          minimum: 0
+        losses:
+          type: integer
+          minimum: 0
+        winPercentage:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+          description: wins / (wins + losses) * 100, rounded to one decimal.
+
+    TieBreakStats:
+      type: object
+      description: >
+        Sets that went to a breaker: a regular set decided by a tie-break, or
+        a match tie-break played instead of a third set. Match tie-breaks
+        also count towards `DecidingSetStats`, so the two stats overlap —
+        a won match tie-break is both a won tie-break and a won deciding set.
+      required: [tieBreaksPlayed, tieBreaksWon, tieBreakWinPercentage]
+      properties:
+        tieBreaksPlayed:
+          type: integer
+          minimum: 0
+        tieBreaksWon:
+          type: integer
+          minimum: 0
+        tieBreakWinPercentage:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+
+    DecidingSetStats:
+      type: object
+      description: >
+        Rubbers (singles and doubles) that went to a deciding third set,
+        whether played as a regular set or as a match tie-break, and how
+        many of them the player won. Match tie-breaks also count towards
+        `TieBreakStats`, so the two stats overlap — a won match tie-break is
+        both a won deciding set and a won tie-break.
+      required: [played, won, winPercentage]
+      properties:
+        played:
+          type: integer
+          minimum: 0
+          description: Rubbers that went to a third set.
+        won:
+          type: integer
+          minimum: 0
+          description: Of those, rubbers the player won.
+        winPercentage:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+          description: won / played * 100, rounded to one decimal; 0 when played is 0.
+
+    MatchResult:
+      type: string
+      enum: [WIN, LOSS]
+
+    Streak:
+      type: object
+      required: [current, recentResults]
+      properties:
+        current:
+          type: object
+          required: [result, count]
+          description: The player's active streak as of their most recent match.
+          properties:
+            result:
+              $ref: "#/components/schemas/MatchResult"
+            count:
+              type: integer
+              minimum: 1
+        recentResults:
+          type: array
+          description: Most recent matches first, newest to oldest.
+          items:
+            $ref: "#/components/schemas/MatchResult"
+          maxItems: 10
+
+    PlayerStats:
+      type: object
+      description: >
+        Win/loss, tie-break, streak and deciding-set stats for a player. When
+        `hasEnoughData` is false, the player exists but has no crawled
+        matches yet — `record`, `tieBreak`, `streak` and `decidingSet` are
+        null rather than being populated with zeroes, so the frontend can
+        distinguish "no data yet" from "zero losses".
+      required: [playerId, player, matchesPlayed, hasEnoughData, record, tieBreak, streak, decidingSet]
+      properties:
+        playerId:
+          type: string
+        player:
+          description: Name and club of `playerId`, present even when `hasEnoughData` is false.
+          allOf:
+            - $ref: "#/components/schemas/PlayerSummary"
+        matchesPlayed:
+          type: integer
+          minimum: 0
+        hasEnoughData:
+          type: boolean
+          description: False when matchesPlayed is 0 (player has no crawled matches yet).
+        record:
+          type: object
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/WinLossRecord"
+        tieBreak:
+          type: object
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/TieBreakStats"
+        streak:
+          type: object
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/Streak"
+        decidingSet:
+          type: object
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/DecidingSetStats"
+
+    HeadToHead:
+      type: object
+      description: >
+        Head-to-head record between two players. `hasEnoughData` is false
+        when the two players have never played each other yet, in which
+        case `record` is null and `recentResults` is empty.
+      required: [playerId, player, opponentId, opponent, matchesPlayed, hasEnoughData, record, recentResults]
+      properties:
+        playerId:
+          type: string
+          description: Id of the player the record is from the perspective of.
+        player:
+          description: Name and club of `playerId`.
+          allOf:
+            - $ref: "#/components/schemas/PlayerSummary"
+        opponentId:
+          type: string
+        opponent:
+          description: Name and club of `opponentId`.
+          allOf:
+            - $ref: "#/components/schemas/PlayerSummary"
+        matchesPlayed:
+          type: integer
+          minimum: 0
+        hasEnoughData:
+          type: boolean
+        record:
+          type: object
+          nullable: true
+          description: Wins/losses are from `playerId`'s perspective.
+          allOf:
+            - $ref: "#/components/schemas/WinLossRecord"
+        recentResults:
+          type: array
+          description: Most recent meetings first, from playerId's perspective.
+          items:
+            $ref: "#/components/schemas/MatchResult"
+
+    RecentMatch:
+      type: object
+      description: >
+        One singles or doubles rubber, from the requested player's
+        perspective (result, teams and set scores are flipped for a player
+        who played on the away side).
+      required: [playedOn, type, result, opponents, partner, ownTeam, opponentTeam, sets]
+      properties:
+        playedOn:
+          type: string
+          format: date
+          example: "2026-05-10"
+        type:
+          type: string
+          enum: [SINGLES, DOUBLES]
+        result:
+          $ref: "#/components/schemas/MatchResult"
+        opponents:
+          type: array
+          description: One opponent for singles, two for doubles.
+          minItems: 1
+          maxItems: 2
+          items:
+            $ref: "#/components/schemas/PlayerSummary"
+        partner:
+          type: object
+          nullable: true
+          description: The player's doubles partner; null for singles.
+          allOf:
+            - $ref: "#/components/schemas/PlayerSummary"
+        ownTeam:
+          type: string
+          description: Name of the team the player played for.
+          example: "TC Blau-Weiss Karlsruhe 1"
+        opponentTeam:
+          type: string
+          example: "TC Rot-Gelb Heidelberg 1"
+        sets:
+          type: array
+          description: Sets in the order they were played.
+          items:
+            $ref: "#/components/schemas/SetScore"
+
+    SetScore:
+      type: object
+      description: One set from the player's perspective.
+      required: [own, opponent, ownTieBreak, opponentTieBreak, matchTieBreak]
+      properties:
+        own:
+          type: integer
+          minimum: 0
+          description: Games won by the player's side, or points for a match tie-break.
+        opponent:
+          type: integer
+          minimum: 0
+        ownTieBreak:
+          type: integer
+          nullable: true
+          minimum: 0
+          description: >
+            Tie-break points of the player's side when a regular set went to
+            a tie-break (e.g. the 7 in 7-6 (7-4)); null otherwise.
+        opponentTieBreak:
+          type: integer
+          nullable: true
+          minimum: 0
+        matchTieBreak:
+          type: boolean
+          description: True when this "set" was a 10-point match tie-break.
+
+    ErrorResponse:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+          example: "No player with id 'zzz999'"

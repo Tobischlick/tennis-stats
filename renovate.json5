@@ -1,0 +1,40 @@
+{
+  $schema: "https://docs.renovatebot.com/renovate-schema.json",
+
+  // Gradle (backend/), the Gradle wrapper and GitHub Actions are detected
+  // automatically. No enabledManagers allow-list, so npm is picked up once
+  // frontend/ exists.
+  //
+  // config:recommended also restricts Java (toolchain, actions/setup-java) to
+  // LTS releases via workarounds:javaLTSVersions, so no extra Java rule here.
+  extends: ["config:recommended"],
+
+  // One quiet daily window; security alerts bypass the schedule.
+  timezone: "Europe/Berlin",
+  schedule: ["before 6am"],
+  prConcurrentLimit: 3,
+
+  // Hijacked releases are usually yanked within hours, so don't propose
+  // anything younger than this. Security fixes bypass it.
+  minimumReleaseAge: "3 days",
+
+  packageRules: [
+    {
+      description: "One PR for all minor and patch updates",
+      matchUpdateTypes: ["minor", "patch"],
+      groupName: "non-major dependencies",
+    },
+    {
+      description: "Spring Boot majors are migrations: open the PR only on approval via the Dependency Dashboard",
+      matchPackageNames: ["org.springframework.boot", "org.springframework.boot:**"],
+      matchUpdateTypes: ["major"],
+      dependencyDashboardApproval: true,
+    },
+    {
+      description: "TypeScript majors wait for openapi-typescript and typescript-eslint to support them: open the PR only on approval via the Dependency Dashboard",
+      matchPackageNames: ["typescript"],
+      matchUpdateTypes: ["major"],
+      dependencyDashboardApproval: true,
+    },
+  ],
+}

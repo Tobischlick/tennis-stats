@@ -1,0 +1,30 @@
+.clean-theme {
+  --clean-accent: oklch(0.52 0.19 262);
+  --clean-accent-soft: oklch(0.96 0.025 262);
+
+  --background: oklch(0.99 0.002 260);
+  --foreground: oklch(0.22 0.01 260);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.22 0.01 260);
+  --primary: var(--clean-accent);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.965 0.003 260);
+  --secondary-foreground: oklch(0.22 0.01 260);
+  --muted: oklch(0.965 0.003 260);
+  --muted-foreground: oklch(0.55 0.01 260);
+  --accent: oklch(0.965 0.003 260);
+  --accent-foreground: oklch(0.22 0.01 260);
+  --border: oklch(0.93 0.004 260);
+  --input: oklch(0.9 0.005 260);
+  --ring: var(--clean-accent);
+  --radius: 1rem;
+
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-clean), ui-sans-serif, system-ui, sans-serif;
+  font-feature-settings: "tnum" 1;
+}
+
+.clean-theme ::selection {
+  background: var(--clean-accent-soft);
+}

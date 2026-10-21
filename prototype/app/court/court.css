@@ -1,0 +1,58 @@
+.court-theme {
+  --court-chalk: #fbf6ee;
+  --court-paper: #ffffff;
+  --court-ink: #1b2420;
+  --court-muted: #5f6a64;
+  --court-clay: #c65a36;
+  --court-clay-dark: #9e4122;
+  --court-clay-soft: #f6e1d6;
+  --court-grass: #1f6b43;
+  --court-grass-dark: #154d30;
+  --court-grass-soft: #deeee3;
+  --court-ball: #dcf23f;
+  --court-line: rgba(255, 255, 255, 0.55);
+
+  background: var(--court-chalk);
+  color: var(--court-ink);
+  font-family: var(--font-court-body), system-ui, sans-serif;
+}
+
+.court-theme .court-display {
+  font-family: var(--font-court-display), var(--font-court-body), sans-serif;
+  font-style: italic;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  line-height: 0.9;
+}
+
+.court-theme .court-num {
+  font-family: var(--font-court-display), var(--font-court-body), sans-serif;
+  font-variant-numeric: tabular-nums;
+  line-height: 0.85;
+}
+
+.court-theme .court-clay-texture {
+  background-color: var(--court-clay);
+  background-image:
+    radial-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px),
+    radial-gradient(rgba(0, 0, 0, 0.06) 1px, transparent 1px);
+  background-size: 6px 6px, 9px 9px;
+  background-position: 0 0, 3px 4px;
+}
+
+.court-theme .court-grass-texture {
+  background-color: var(--court-grass);
+  background-image: repeating-linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.035) 0 48px,
+    transparent 48px 96px
+  );
+}
+
+.court-theme .court-baseline {
+  background-image: linear-gradient(var(--court-ink), var(--court-ink));
+  background-size: 2.5rem 4px;
+  background-repeat: no-repeat;
+  background-position: left bottom;
+  padding-bottom: 0.6rem;
+}

@@ -133,7 +133,9 @@ paths:
         query param on /players/{id}/stats, since it's keyed on a pair of
         players and returns its own "not enough data yet" shape when the two
         have never played each other (as opposed to one player having no
-        matches at all).
+        matches at all). The top-level record covers singles only; doubles
+        in which the two stood on opposite sides are reported separately in
+        `doubles`, never mixed into the singles record.
       parameters:
         - $ref: "#/components/parameters/PlayerId"
         - name: opponentId
@@ -170,6 +172,69 @@ paths:
                       losses: 1
                       winPercentage: 66.7
                     recentResults: [WIN, LOSS, WIN]
+                    doubles:
+                      matchesPlayed: 1
+                      hasEnoughData: true
+                      record:
+                        wins: 0
+                        losses: 1
+                        winPercentage: 0
+                      meetings:
+                        - playedOn: "2026-05-10"
+                          result: LOSS
+                          partner:
+                            id: "m4n5o6"
+                            name: "Clara Wolf"
+                            club: "TC Blau-Weiss Karlsruhe"
+                          opponentPartner:
+                            id: "j1k2l3"
+                            name: "Lena Vogt"
+                            club: "TC Rot-Gelb Heidelberg"
+                          ownTeam: "TC Blau-Weiss Karlsruhe 1"
+                          opponentTeam: "TC Rot-Gelb Heidelberg 1"
+                          sets:
+                            - { own: 4, opponent: 6, ownTieBreak: null, opponentTieBreak: null, matchTieBreak: false }
+                            - { own: 6, opponent: 7, ownTieBreak: 5, opponentTieBreak: 7, matchTieBreak: false }
+                onlyDoubles:
+                  summary: The two have only met in doubles so far
+                  value:
+                    playerId: "a1b2c3"
+                    player:
+                      id: "a1b2c3"
+                      name: "Anna Schmidt"
+                      club: "TC Blau-Weiss Karlsruhe"
+                    opponentId: "d4e5f6"
+                    opponent:
+                      id: "d4e5f6"
+                      name: "Anna Schuster"
+                      club: "TC Rot-Gelb Heidelberg"
+                    matchesPlayed: 0
+                    hasEnoughData: false
+                    record: null
+                    recentResults: []
+                    doubles:
+                      matchesPlayed: 1
+                      hasEnoughData: true
+                      record:
+                        wins: 1
+                        losses: 0
+                        winPercentage: 100
+                      meetings:
+                        - playedOn: "2026-05-10"
+                          result: WIN
+                          partner:
+                            id: "m4n5o6"
+                            name: "Clara Wolf"
+                            club: "TC Blau-Weiss Karlsruhe"
+                          opponentPartner:
+                            id: "j1k2l3"
+                            name: "Lena Vogt"
+                            club: "TC Rot-Gelb Heidelberg"
+                          ownTeam: "TC Blau-Weiss Karlsruhe 1"
+                          opponentTeam: "TC Rot-Gelb Heidelberg 1"
+                          sets:
+                            - { own: 6, opponent: 3, ownTieBreak: null, opponentTieBreak: null, matchTieBreak: false }
+                            - { own: 6, opponent: 4, ownTieBreak: null, opponentTieBreak: null, matchTieBreak: false }
                 notEnoughData:
                   summary: These two have never played each other (yet)
                   value:
@@ -187,6 +252,11 @@ paths:
                     hasEnoughData: false
                     record: null
                     recentResults: []
+                    doubles:
+                      matchesPlayed: 0
+                      hasEnoughData: false
+                      record: null
+                      meetings: []
         "404":
           description: One or both player ids don't exist.
           content:
@@ -448,10 +518,15 @@ components:
     HeadToHead:
       type: object
       description: >
-        Head-to-head record between two players. `hasEnoughData` is false
-        when the two players have never played each other yet, in which
-        case `record` is null and `recentResults` is empty.
-      required: [playerId, player, opponentId, opponent, matchesPlayed, hasEnoughData, record, recentResults]
+        Head-to-head record between two players. The top-level
+        `matchesPlayed`, `hasEnoughData`, `record` and `recentResults` cover
+        singles rubbers only: `hasEnoughData` is false when the two players
+        have never played each other in singles yet, in which case `record`
+        is null and `recentResults` is empty. Doubles in which the two stood
+        on opposite sides are a separate record in `doubles`, which can have
+        meetings even when there is no singles meeting. Doubles where the two
+        played together as partners are not counted anywhere.
+      required: [playerId, player, opponentId, opponent, matchesPlayed, hasEnoughData, record, recentResults, doubles]
       properties:
         playerId:
           type: string
@@ -479,9 +554,79 @@ components:
             - $ref: "#/components/schemas/WinLossRecord"
         recentResults:
           type: array
-          description: Most recent meetings first, from playerId's perspective.
+          description: Most recent singles meetings first, from playerId's perspective.
           items:
             $ref: "#/components/schemas/MatchResult"
+        doubles:
+          $ref: "#/components/schemas/DoublesHeadToHead"
+
+    DoublesHeadToHead:
+      type: object
+      description: >
+        Doubles rubbers in which `playerId` and `opponentId` stood on
+        opposite sides, each with their own partner. Kept apart from the
+        singles record because a doubles result reflects two pairs, not just
+        these two players. `hasEnoughData` is false when there is no such
+        rubber, in which case `record` is null and `meetings` is empty.
+      required: [matchesPlayed, hasEnoughData, record, meetings]
+      properties:
+        matchesPlayed:
+          type: integer
+          minimum: 0
+        hasEnoughData:
+          type: boolean
+        record:
+          type: object
+          nullable: true
+          description: Wins/losses of `playerId`'s pair against `opponentId`'s pair.
+          allOf:
+            - $ref: "#/components/schemas/WinLossRecord"
+        meetings:
+          type: array
+          description: >
+            Most recent meetings first, from playerId's perspective. Rubbers
+            whose sets don't settle a winner are left out.
+          items:
+            $ref: "#/components/schemas/DoublesMeeting"
+
+    DoublesMeeting:
+      type: object
+      description: >
+        One doubles rubber between the two players, from `playerId`'s
+        perspective (result, teams and set scores are flipped for a player
+        who played on the away side).
+      required: [playedOn, result, partner, opponentPartner, ownTeam, opponentTeam, sets]
+      properties:
+        playedOn:
+          type: string
+          format: date
+          example: "2026-05-10"
+        result:
+          $ref: "#/components/schemas/MatchResult"
+        partner:
+          type: object
+          nullable: true
+          description: "`playerId`'s partner; null only if the partner is missing from the crawled data."
+          allOf:
+            - $ref: "#/components/schemas/PlayerSummary"
+        opponentPartner:
+          type: object
+          nullable: true
+          description: "`opponentId`'s partner; null only if the partner is missing from the crawled data."
+          allOf:
+            - $ref: "#/components/schemas/PlayerSummary"
+        ownTeam:
+          type: string
+          description: Name of the team `playerId` played for.
+          example: "TC Blau-Weiss Karlsruhe 1"
+        opponentTeam:
+          type: string
+          example: "TC Rot-Gelb Heidelberg 1"
+        sets:
+          type: array
+          description: Sets in the order they were played.
+          items:
+            $ref: "#/components/schemas/SetScore"
 
     RecentMatch:
       type: object

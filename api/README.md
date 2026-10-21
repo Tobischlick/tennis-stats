@@ -13,7 +13,8 @@ Endpoints:
 - `GET /players?query=` — name search, returns lightweight player summaries.
 - `GET /players/{id}/stats` — win/loss, tie-break and streak stats.
 - `GET /players/{id}/head-to-head/{opponentId}` — head-to-head record
-  between two players.
+  between two players: singles, plus doubles on opposite sides as a separate
+  record with partners and set scores.
 - `GET /players/{id}/matches?limit=` — the player's most recent matches
   (up to 10) with opponents, partner, teams and set scores.
 

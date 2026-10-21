@@ -45,7 +45,7 @@ graph TD
 
 | Directory | Responsibility |
 |---|---|
-| `app/` (routes) | Pages: player search, player stats page, head-to-head — per the journeys in [user-journeys.md](../01_introduction_and_goals/user-journeys.md). |
+| `app/` (routes) | Pages: player search, player stats page, a player's full match list, head-to-head — per the journeys in [user-journeys.md](../01_introduction_and_goals/user-journeys.md). |
 | `components/` | UI building blocks (search box, stat cards, empty/loading states) using Tailwind + shadcn/ui, styled per the [UI concept](../08_crosscutting_concepts/ui_concept.md). |
 | `lib/api-client` | Typed client (`openapi-fetch` over types generated from the backend's OpenAPI spec) — the frontend's only path to data, no direct DB access. Server-only; the backend URL comes from `TENNIS_STATS_API_BASE_URL`. |
 

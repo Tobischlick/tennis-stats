@@ -92,7 +92,12 @@ class RecentMatchesServiceTest {
 
     private List<MatchDetail> recentMatchesOfAnna(int limit) {
         entityManager.clear();
-        return recentMatchesService.getRecentMatches(anna.getId(), limit);
+        return recentMatchesService.getMatches(anna.getId(), 0, limit).matches();
+    }
+
+    private MatchPage matchPageOfAnna(int offset, int limit) {
+        entityManager.clear();
+        return recentMatchesService.getMatches(anna.getId(), offset, limit);
     }
 
     @Test
@@ -206,6 +211,55 @@ class RecentMatchesServiceTest {
     }
 
     @Test
+    void pagesThroughAllMatchesWithTheOffset() {
+        for (int day = 1; day <= 12; day++) {
+            annaWinsHomeSingles(LocalDate.of(2026, 5, day));
+        }
+
+        MatchPage secondPage = matchPageOfAnna(5, 5);
+        MatchPage lastPage = matchPageOfAnna(10, 5);
+
+        assertThat(secondPage.total()).isEqualTo(12);
+        assertThat(secondPage.matches())
+                .extracting(MatchDetail::playedOn)
+                .containsExactly(
+                        LocalDate.of(2026, 5, 7),
+                        LocalDate.of(2026, 5, 6),
+                        LocalDate.of(2026, 5, 5),
+                        LocalDate.of(2026, 5, 4),
+                        LocalDate.of(2026, 5, 3));
+        assertThat(lastPage.total()).isEqualTo(12);
+        assertThat(lastPage.matches())
+                .extracting(MatchDetail::playedOn)
+                .containsExactly(LocalDate.of(2026, 5, 2), LocalDate.of(2026, 5, 1));
+    }
+
+    @Test
+    void countsOnlySettledRubbersInTheTotal() {
+        annaWinsHomeSingles(LocalDate.of(2026, 5, 3));
+        Rubber unsettled = singles(LocalDate.of(2026, 5, 10), anna, bea);
+        unsettled.addSet(1, SetType.REGULAR, 6, 3);
+        unsettled.addSet(2, SetType.REGULAR, 3, 6);
+        save(unsettled);
+
+        MatchPage page = matchPageOfAnna(0, 10);
+
+        assertThat(page.total()).isEqualTo(1);
+        assertThat(page.matches()).hasSize(1);
+    }
+
+    @Test
+    void returnsAnEmptyPageWithTheTotalForAnOffsetPastTheEnd() {
+        annaWinsHomeSingles(LocalDate.of(2026, 5, 3));
+        annaWinsHomeSingles(LocalDate.of(2026, 5, 10));
+
+        MatchPage page = matchPageOfAnna(2, 10);
+
+        assertThat(page.matches()).isEmpty();
+        assertThat(page.total()).isEqualTo(2);
+    }
+
+    @Test
     void agreesWithTheStreaksRecentResults() {
         annaWinsHomeSingles(LocalDate.of(2026, 5, 3));
         annaLosesHomeSingles(LocalDate.of(2026, 5, 10));
@@ -223,7 +277,7 @@ class RecentMatchesServiceTest {
 
     @Test
     void returnsAnEmptyListForAPlayerWithoutMatches() {
-        assertThat(recentMatchesOfAnna(10)).isEmpty();
+        assertThat(matchPageOfAnna(0, 10)).isEqualTo(new MatchPage(List.of(), 0));
     }
 
     @Test
@@ -235,7 +289,7 @@ class RecentMatchesServiceTest {
         Statistics statistics = entityManager.getEntityManagerFactory().unwrap(SessionFactory.class).getStatistics();
         statistics.clear();
 
-        List<MatchDetail> matches = recentMatchesService.getRecentMatches(anna.getId(), 10);
+        List<MatchDetail> matches = recentMatchesService.getMatches(anna.getId(), 0, 10).matches();
         matches.forEach(match -> match.opponents().forEach(Player::getLastName));
 
         assertThat(matches).hasSize(8);

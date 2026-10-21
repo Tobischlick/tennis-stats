@@ -72,8 +72,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get a player's most recent matches with opponents and set scores
-         * @description Journeys: scouting an opponent, checking your own progress. Lists the player's singles and doubles rubbers, newest first, from the player's perspective. Rubbers whose sets don't settle a winner are left out, so the list lines up with `streak.recentResults` on /players/{id}/stats (same matches, same order).
+         * Get a player's matches with opponents and set scores, newest first
+         * @description Journeys: scouting an opponent, checking your own progress. Lists the player's singles and doubles rubbers, newest first, from the player's perspective. Rubbers whose sets don't settle a winner are left out, so the first page lines up with `streak.recentResults` on /players/{id}/stats (same matches, same order). Without paging parameters it returns the 10 most recent matches; to go through all of them, page with `limit` (at most 100 per request) and `offset`, using the `X-Total-Count` header to know when to stop.
          */
         get: operations["getRecentMatches"];
         put?: never;
@@ -334,8 +334,10 @@ export interface operations {
     getRecentMatches: {
         parameters: {
             query?: {
-                /** @description Maximum number of matches to return. */
+                /** @description Maximum number of matches to return (page size). */
                 limit?: number;
+                /** @description Number of newest matches to skip. An offset at or past the total returns an empty array. */
+                offset?: number;
             };
             header?: never;
             path: {
@@ -346,16 +348,18 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description The player's most recent matches, newest first. Empty array if the player has none. */
+            /** @description The requested page of the player's matches, newest first. Empty array if the player has none or `offset` is past the last match. */
             200: {
                 headers: {
+                    /** @description Total number of the player's matches across all pages. */
+                    "X-Total-Count": number;
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": components["schemas"]["RecentMatch"][];
                 };
             };
-            /** @description `limit` is not an integer from 1 to 10. */
+            /** @description `limit` is not an integer from 1 to 100, or `offset` is not a non-negative integer. */
             400: {
                 headers: {
                     [name: string]: unknown;

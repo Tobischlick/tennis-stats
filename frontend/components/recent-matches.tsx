@@ -20,7 +20,7 @@ export function RecentMatches({ matches }: { matches: RecentMatch[] }) {
   );
 }
 
-function MatchList({ matches }: { matches: RecentMatch[] }) {
+export function MatchList({ matches }: { matches: RecentMatch[] }) {
   return (
     <ol className="divide-y divide-border">
       {matches.map((m, i) => (

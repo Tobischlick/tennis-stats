@@ -1,11 +1,56 @@
+"use client";
+
+import { useEffect, useRef, useState, useTransition } from "react";
 import Form from "next/form";
+import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { MIN_QUERY_LENGTH, SEARCH_DEBOUNCE_MS, searchHref } from "@/lib/search";
 
-export function SearchForm({ defaultValue, autoFocus }: { defaultValue?: string; autoFocus?: boolean }) {
+export function SearchForm({ query, autoFocus }: { query: string; autoFocus?: boolean }) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const [value, setValue] = useState(query);
+  // Queries this form sent since the last outside navigation. One of them arriving
+  // late must not overwrite newer typing; anything else (back button, header link)
+  // replaces the typed value.
+  const [sent, setSent] = useState(() => new Set([query]));
+  const [prevQuery, setPrevQuery] = useState(query);
+  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  if (query !== prevQuery) {
+    setPrevQuery(query);
+    if (!sent.has(query)) {
+      setSent(new Set([query]));
+      setValue(query);
+    }
+  }
+
+  useEffect(() => () => clearTimeout(timer.current), []);
+
+  function handleChange(next: string) {
+    setValue(next);
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => {
+      const trimmed = next.trim();
+      const q = trimmed.length >= MIN_QUERY_LENGTH ? trimmed : "";
+      setSent((prev) => new Set(prev).add(q));
+      startTransition(() => router.replace(searchHref(q), { scroll: false }));
+    }, SEARCH_DEBOUNCE_MS);
+  }
+
   return (
-    <Form action="/" role="search" className="relative">
+    <Form
+      action="/"
+      role="search"
+      className="relative"
+      data-pending={isPending ? "" : undefined}
+      onSubmit={() => {
+        clearTimeout(timer.current);
+        setSent(new Set([value.trim()]));
+      }}
+    >
       <Search
         aria-hidden
         className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-muted-foreground md:left-5"
@@ -13,7 +58,8 @@ export function SearchForm({ defaultValue, autoFocus }: { defaultValue?: string;
       <Input
         name="q"
         type="search"
-        defaultValue={defaultValue}
+        value={value}
+        onChange={(e) => handleChange(e.target.value)}
         autoFocus={autoFocus}
         autoComplete="off"
         required

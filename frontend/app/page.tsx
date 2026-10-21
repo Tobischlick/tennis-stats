@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { SearchX } from "lucide-react";
+import { DatabaseOverview, DatabaseOverviewSkeleton } from "@/components/database-overview";
 import { PlayerList } from "@/components/player-list";
 import { SearchForm } from "@/components/search-form";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -22,6 +23,14 @@ export default async function SearchPage({ searchParams }: PageProps<"/">) {
         )}
         <SearchForm query={query} autoFocus={!query} />
       </div>
+
+      {!query && (
+        <div className="transition-opacity group-has-data-pending:opacity-60">
+          <Suspense fallback={<DatabaseOverviewSkeleton />}>
+            <DatabaseOverview />
+          </Suspense>
+        </div>
+      )}
 
       {query && (
         <div className="transition-opacity group-has-data-pending:opacity-60">

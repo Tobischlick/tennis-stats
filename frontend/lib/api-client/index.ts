@@ -2,7 +2,7 @@ import "server-only";
 import { cache } from "react";
 import createClient from "openapi-fetch";
 import type { paths } from "@/lib/api/schema";
-import type { HeadToHead, PlayerStats, PlayerSummary, RecentMatch } from "./types";
+import type { HeadToHead, Overview, PlayerStats, PlayerSummary, RecentMatch } from "./types";
 
 export type * from "./types";
 
@@ -61,4 +61,10 @@ export async function getHeadToHead(id: string, opponentId: string): Promise<Hea
     client.GET("/players/{id}/head-to-head/{opponentId}", { params: { path: { id, opponentId } } }),
   );
   return orNotFound("getHeadToHead", result);
+}
+
+export async function getOverview(): Promise<Overview> {
+  const { data, response } = await send("getOverview", () => client.GET("/overview"));
+  if (!response.ok || data === undefined) throw new Error(`getOverview: backend answered HTTP ${response.status}`);
+  return data;
 }

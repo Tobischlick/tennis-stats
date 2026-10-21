@@ -130,6 +130,7 @@ class TieBreakServiceTest {
         assertThat(stats.tieBreaksWon()).isEqualTo(2);
         assertThat(stats.winRate()).isEqualTo(0.5);
     }
+
     @Test
     void countsRegularSetsEndingSevenSixWithoutAStoredBreakerScore() {
         Team home = teamRepository.save(new Team("TC Home"));

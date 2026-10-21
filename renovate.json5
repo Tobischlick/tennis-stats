@@ -20,9 +20,10 @@
 
   packageRules: [
     {
-      description: "One PR for all minor and patch updates",
+      description: "One PR for all minor and patch updates, merged automatically once CI passes",
       matchUpdateTypes: ["minor", "patch"],
       groupName: "non-major dependencies",
+      automerge: true,
     },
     {
       description: "Spring Boot majors are migrations: open the PR only on approval via the Dependency Dashboard",

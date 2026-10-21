@@ -56,5 +56,5 @@ See [CLAUDE.md](CLAUDE.md) for branching and commit conventions.
 Europe/Berlin, at most 3 open PRs; security alerts skip the schedule): minor and
 patch updates share one PR, each major gets its own,
 and Spring Boot majors only appear once approved on the Dependency Dashboard
-issue. Java only moves between LTS releases. Nothing is automerged — the CI
-gate runs like on any PR and the PR is merged by hand.
+issue. Java only moves between LTS releases. The minor/patch PR is merged
+automatically once both CI checks pass; majors are merged by hand.

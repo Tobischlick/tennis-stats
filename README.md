@@ -12,7 +12,7 @@ match results into a database and surfaces stats (win/loss, tie-breaks,
 head-to-head, and more) that BTV itself doesn't show.
 
 **Built by AI agents:** this repo is almost entirely written by Claude Code.
-Work is scoped into epics and stories as GitHub issues; each story is
+Work is scoped into stories as GitHub issues; each story is
 implemented end-to-end by a Claude Code subagent in its own branch, then
 reviewed and merged by the human owner, who also drives the product vision
 and architecture docs in conversation with Claude Code.

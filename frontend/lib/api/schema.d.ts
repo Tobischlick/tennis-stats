@@ -74,7 +74,7 @@ export interface paths {
         };
         /**
          * Get the head-to-head record between two players
-         * @description Journey 3 (head-to-head lookup). A dedicated endpoint rather than a query param on /players/{id}/stats, since it's keyed on a pair of players and returns its own "not enough data yet" shape when the two have never played each other (as opposed to one player having no matches at all).
+         * @description Journey 3 (head-to-head lookup). A dedicated endpoint rather than a query param on /players/{id}/stats, since it's keyed on a pair of players and returns its own "not enough data yet" shape when the two have never played each other (as opposed to one player having no matches at all). The top-level record covers singles only; doubles in which the two stood on opposite sides are reported separately in `doubles`, never mixed into the singles record.
          */
         get: operations["getHeadToHead"];
         put?: never;
@@ -173,7 +173,7 @@ export interface components {
             streak: components["schemas"]["Streak"] | null;
             decidingSet: components["schemas"]["DecidingSetStats"] | null;
         };
-        /** @description Head-to-head record between two players. `hasEnoughData` is false when the two players have never played each other yet, in which case `record` is null and `recentResults` is empty. */
+        /** @description Head-to-head record between two players. The top-level `matchesPlayed`, `hasEnoughData`, `record` and `recentResults` cover singles rubbers only: `hasEnoughData` is false when the two players have never played each other in singles yet, in which case `record` is null and `recentResults` is empty. Doubles in which the two stood on opposite sides are a separate record in `doubles`, which can have meetings even when there is no singles meeting. Doubles where the two played together as partners are not counted anywhere. */
         HeadToHead: {
             /** @description Id of the player the record is from the perspective of. */
             playerId: string;
@@ -186,8 +186,40 @@ export interface components {
             hasEnoughData: boolean;
             /** @description Wins/losses are from `playerId`'s perspective. */
             record: components["schemas"]["WinLossRecord"] | null;
-            /** @description Most recent meetings first, from playerId's perspective. */
+            /** @description Most recent singles meetings first, from playerId's perspective. */
             recentResults: components["schemas"]["MatchResult"][];
+            doubles: components["schemas"]["DoublesHeadToHead"];
+        };
+        /** @description Doubles rubbers in which `playerId` and `opponentId` stood on opposite sides, each with their own partner. Kept apart from the singles record because a doubles result reflects two pairs, not just these two players. `hasEnoughData` is false when there is no such rubber, in which case `record` is null and `meetings` is empty. */
+        DoublesHeadToHead: {
+            matchesPlayed: number;
+            hasEnoughData: boolean;
+            /** @description Wins/losses of `playerId`'s pair against `opponentId`'s pair. */
+            record: components["schemas"]["WinLossRecord"] | null;
+            /** @description Most recent meetings first, from playerId's perspective. Rubbers whose sets don't settle a winner are left out. */
+            meetings: components["schemas"]["DoublesMeeting"][];
+        };
+        /** @description One doubles rubber between the two players, from `playerId`'s perspective (result, teams and set scores are flipped for a player who played on the away side). */
+        DoublesMeeting: {
+            /**
+             * Format: date
+             * @example 2026-05-10
+             */
+            playedOn: string;
+            result: components["schemas"]["MatchResult"];
+            /** @description `playerId`'s partner; null only if the partner is missing from the crawled data. */
+            partner: components["schemas"]["PlayerSummary"] | null;
+            /** @description `opponentId`'s partner; null only if the partner is missing from the crawled data. */
+            opponentPartner: components["schemas"]["PlayerSummary"] | null;
+            /**
+             * @description Name of the team `playerId` played for.
+             * @example TC Blau-Weiss Karlsruhe 1
+             */
+            ownTeam: string;
+            /** @example TC Rot-Gelb Heidelberg 1 */
+            opponentTeam: string;
+            /** @description Sets in the order they were played. */
+            sets: components["schemas"]["SetScore"][];
         };
         /** @description One singles or doubles rubber, from the requested player's perspective (result, teams and set scores are flipped for a player who played on the away side). */
         RecentMatch: {

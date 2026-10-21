@@ -9,3 +9,5 @@ export type RecentMatch = Schemas["RecentMatch"];
 export type SetScore = Schemas["SetScore"];
 export type MatchResult = Schemas["MatchResult"];
 export type Overview = Schemas["Overview"];
+export type DoublesMeeting = Schemas["DoublesMeeting"];
+export type WinLossRecord = Schemas["WinLossRecord"];

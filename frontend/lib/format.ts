@@ -1,4 +1,4 @@
-import type { MatchResult } from "@/lib/api-client/types";
+import type { MatchResult, WinLossRecord } from "@/lib/api-client/types";
 
 const percent = new Intl.NumberFormat("de-DE", { maximumFractionDigits: 0 });
 const shortDate = new Intl.DateTimeFormat("de-DE", { day: "2-digit", month: "2-digit", timeZone: "UTC" });
@@ -42,4 +42,14 @@ export function matchCount(count: number): string {
 
 export function isSmallSample(matchesPlayed: number): boolean {
   return matchesPlayed < 5;
+}
+
+/** "Einzel 1:0 · Doppel 0:1"; a discipline without a meeting is left out. */
+export function headToHeadSummary(singles: WinLossRecord | null, doubles: WinLossRecord | null): string {
+  return [
+    singles && `Einzel ${singles.wins}:${singles.losses}`,
+    doubles && `Doppel ${doubles.wins}:${doubles.losses}`,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 }

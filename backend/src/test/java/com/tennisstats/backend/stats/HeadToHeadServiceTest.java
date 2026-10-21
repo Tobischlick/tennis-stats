@@ -1,6 +1,7 @@
 package com.tennisstats.backend.stats;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 
 import com.tennisstats.backend.domain.Meeting;
 import com.tennisstats.backend.domain.Player;
@@ -101,10 +102,12 @@ class HeadToHeadServiceTest {
         assertThat(record.matchesPlayed()).isZero();
         assertThat(record.playerAWins()).isZero();
         assertThat(record.playerBWins()).isZero();
+        assertThat(record.doubles().matchesPlayed()).isZero();
+        assertThat(record.doubles().meetings()).isEmpty();
     }
 
     @Test
-    void doesNotCountADoublesEncounterBetweenTheTwoPlayers() {
+    void reportsADoublesEncounterSeparatelyWithoutMixingItIntoTheSinglesRecord() {
         Team home = teamRepository.save(new Team("TC Blau-Weiss 1"));
         Team away = teamRepository.save(new Team("TC Rot-Gelb 1"));
 
@@ -113,13 +116,102 @@ class HeadToHeadServiceTest {
         Player annasPartner = playerRepository.save(new Player("Clara", "Conrad"));
         Player beasPartner = playerRepository.save(new Player("Dana", "Diehl"));
 
-        // Anna and Bea face each other in a doubles rubber, each with their own partner.
+        // Anna and Bea face each other in a doubles rubber, each with their own partner; Bea's pair wins.
         Meeting doublesMeeting = new Meeting(home, away, LocalDate.of(2026, 5, 3));
         Rubber doublesRubber = doublesMeeting.addRubber(RubberType.DOUBLES, 2);
         doublesRubber.addParticipant(anna, Side.HOME);
         doublesRubber.addParticipant(annasPartner, Side.HOME);
         doublesRubber.addParticipant(bea, Side.AWAY);
         doublesRubber.addParticipant(beasPartner, Side.AWAY);
+        doublesRubber.addSet(1, SetType.REGULAR, 2, 6);
+        doublesRubber.addSet(2, SetType.REGULAR, 6, 7).setTiebreakScore(5, 7);
+        meetingRepository.save(doublesMeeting);
+
+        // Anna beats Bea in singles a week later.
+        Meeting singlesMeeting = new Meeting(home, away, LocalDate.of(2026, 5, 10));
+        Rubber singlesRubber = singlesMeeting.addRubber(RubberType.SINGLES, 1);
+        singlesRubber.addParticipant(anna, Side.HOME);
+        singlesRubber.addParticipant(bea, Side.AWAY);
+        singlesRubber.addSet(1, SetType.REGULAR, 6, 3);
+        singlesRubber.addSet(2, SetType.REGULAR, 6, 4);
+        meetingRepository.saveAndFlush(singlesMeeting);
+
+        HeadToHeadRecord record = headToHeadService.getHeadToHead(anna.getId(), bea.getId());
+
+        assertThat(record.hasMatches()).isTrue();
+        assertThat(record.matchesPlayed()).isEqualTo(1);
+        assertThat(record.playerAWins()).isEqualTo(1);
+        assertThat(record.playerBWins()).isZero();
+        assertThat(record.recentResults()).containsExactly(MatchResult.WIN);
+
+        HeadToHeadRecord.Doubles doubles = record.doubles();
+        assertThat(doubles.matchesPlayed()).isEqualTo(1);
+        assertThat(doubles.playerAWins()).isZero();
+        assertThat(doubles.playerBWins()).isEqualTo(1);
+        assertThat(doubles.meetings()).singleElement().satisfies(meeting -> {
+            assertThat(meeting.playedOn()).isEqualTo(LocalDate.of(2026, 5, 3));
+            assertThat(meeting.result()).isEqualTo(MatchResult.LOSS);
+            assertThat(meeting.partner()).isEqualTo(annasPartner);
+            assertThat(meeting.opponents()).containsExactlyInAnyOrder(bea, beasPartner);
+            assertThat(meeting.sets()).extracting(SetScore::own, SetScore::opponent)
+                    .containsExactly(tuple(2, 6), tuple(6, 7));
+            assertThat(meeting.sets().get(1).ownTieBreak()).isEqualTo(5);
+        });
+    }
+
+    @Test
+    void playersWhoOnlyMetInDoublesHaveNoSinglesRecordButADoublesRecord() {
+        Team home = teamRepository.save(new Team("TC Blau-Weiss 1"));
+        Team away = teamRepository.save(new Team("TC Rot-Gelb 1"));
+
+        Player anna = playerRepository.save(new Player("Anna", "Adler"));
+        Player bea = playerRepository.save(new Player("Bea", "Berger"));
+        Player annasPartner = playerRepository.save(new Player("Clara", "Conrad"));
+        Player beasPartner = playerRepository.save(new Player("Dana", "Diehl"));
+
+        // Bea plays HOME this time, so Anna's perspective is the flipped one.
+        Meeting doublesMeeting = new Meeting(away, home, LocalDate.of(2026, 5, 3));
+        Rubber doublesRubber = doublesMeeting.addRubber(RubberType.DOUBLES, 1);
+        doublesRubber.addParticipant(bea, Side.HOME);
+        doublesRubber.addParticipant(beasPartner, Side.HOME);
+        doublesRubber.addParticipant(anna, Side.AWAY);
+        doublesRubber.addParticipant(annasPartner, Side.AWAY);
+        doublesRubber.addSet(1, SetType.REGULAR, 3, 6);
+        doublesRubber.addSet(2, SetType.REGULAR, 6, 4);
+        doublesRubber.addSet(3, SetType.MATCH_TIE_BREAK, 8, 10);
+        meetingRepository.saveAndFlush(doublesMeeting);
+
+        HeadToHeadRecord record = headToHeadService.getHeadToHead(anna.getId(), bea.getId());
+
+        assertThat(record.hasMatches()).isFalse();
+        assertThat(record.matchesPlayed()).isZero();
+        assertThat(record.recentResults()).isEmpty();
+        assertThat(record.doubles().playerAWins()).isEqualTo(1);
+        assertThat(record.doubles().playerBWins()).isZero();
+        assertThat(record.doubles().meetings()).singleElement().satisfies(meeting -> {
+            assertThat(meeting.result()).isEqualTo(MatchResult.WIN);
+            assertThat(meeting.ownTeam()).isEqualTo("TC Blau-Weiss 1");
+            assertThat(meeting.sets()).extracting(SetScore::own, SetScore::opponent)
+                    .containsExactly(tuple(6, 3), tuple(4, 6), tuple(10, 8));
+        });
+    }
+
+    @Test
+    void doesNotCountDoublesWhereTheTwoPlayersWerePartners() {
+        Team home = teamRepository.save(new Team("TC Blau-Weiss 1"));
+        Team away = teamRepository.save(new Team("TC Rot-Gelb 1"));
+
+        Player anna = playerRepository.save(new Player("Anna", "Adler"));
+        Player bea = playerRepository.save(new Player("Bea", "Berger"));
+        Player clara = playerRepository.save(new Player("Clara", "Conrad"));
+        Player dana = playerRepository.save(new Player("Dana", "Diehl"));
+
+        Meeting doublesMeeting = new Meeting(home, away, LocalDate.of(2026, 5, 3));
+        Rubber doublesRubber = doublesMeeting.addRubber(RubberType.DOUBLES, 1);
+        doublesRubber.addParticipant(anna, Side.HOME);
+        doublesRubber.addParticipant(bea, Side.HOME);
+        doublesRubber.addParticipant(clara, Side.AWAY);
+        doublesRubber.addParticipant(dana, Side.AWAY);
         doublesRubber.addSet(1, SetType.REGULAR, 6, 2);
         doublesRubber.addSet(2, SetType.REGULAR, 6, 1);
         meetingRepository.saveAndFlush(doublesMeeting);
@@ -127,7 +219,63 @@ class HeadToHeadServiceTest {
         HeadToHeadRecord record = headToHeadService.getHeadToHead(anna.getId(), bea.getId());
 
         assertThat(record.hasMatches()).isFalse();
-        assertThat(record.matchesPlayed()).isZero();
+        assertThat(record.doubles().matchesPlayed()).isZero();
+        assertThat(record.doubles().meetings()).isEmpty();
+    }
+
+    @Test
+    void doublesMeetingsAreNewestFirstAndSkipUnsettledRubbers() {
+        Team home = teamRepository.save(new Team("TC Blau-Weiss 1"));
+        Team away = teamRepository.save(new Team("TC Rot-Gelb 1"));
+
+        Player anna = playerRepository.save(new Player("Anna", "Adler"));
+        Player bea = playerRepository.save(new Player("Bea", "Berger"));
+        Player clara = playerRepository.save(new Player("Clara", "Conrad"));
+        Player dana = playerRepository.save(new Player("Dana", "Diehl"));
+
+        doubles(home, away, LocalDate.of(2026, 5, 3), anna, clara, bea, dana, 6, 1);
+        doubles(home, away, LocalDate.of(2026, 5, 17), anna, clara, bea, dana, 1, 6);
+        // One set each: the sets don't settle a winner.
+        Meeting unsettled = new Meeting(home, away, LocalDate.of(2026, 6, 1));
+        Rubber unsettledRubber = unsettled.addRubber(RubberType.DOUBLES, 1);
+        unsettledRubber.addParticipant(anna, Side.HOME);
+        unsettledRubber.addParticipant(clara, Side.HOME);
+        unsettledRubber.addParticipant(bea, Side.AWAY);
+        unsettledRubber.addParticipant(dana, Side.AWAY);
+        unsettledRubber.addSet(1, SetType.REGULAR, 6, 3);
+        unsettledRubber.addSet(2, SetType.REGULAR, 3, 6);
+        meetingRepository.saveAndFlush(unsettled);
+
+        HeadToHeadRecord.Doubles doubles =
+                headToHeadService.getHeadToHead(anna.getId(), bea.getId()).doubles();
+
+        assertThat(doubles.matchesPlayed()).isEqualTo(3);
+        assertThat(doubles.meetings())
+                .extracting(MatchDetail::playedOn, MatchDetail::result)
+                .containsExactly(
+                        tuple(LocalDate.of(2026, 5, 17), MatchResult.LOSS),
+                        tuple(LocalDate.of(2026, 5, 3), MatchResult.WIN));
+    }
+
+    private void doubles(
+            Team home,
+            Team away,
+            LocalDate playedOn,
+            Player homeA,
+            Player homeB,
+            Player awayA,
+            Player awayB,
+            int homeGames,
+            int awayGames) {
+        Meeting meeting = new Meeting(home, away, playedOn);
+        Rubber rubber = meeting.addRubber(RubberType.DOUBLES, 1);
+        rubber.addParticipant(homeA, Side.HOME);
+        rubber.addParticipant(homeB, Side.HOME);
+        rubber.addParticipant(awayA, Side.AWAY);
+        rubber.addParticipant(awayB, Side.AWAY);
+        rubber.addSet(1, SetType.REGULAR, homeGames, awayGames);
+        rubber.addSet(2, SetType.REGULAR, homeGames, awayGames);
+        meetingRepository.save(meeting);
     }
 
     @Test

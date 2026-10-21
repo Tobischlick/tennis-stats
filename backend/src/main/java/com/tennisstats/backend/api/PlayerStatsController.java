@@ -1,13 +1,16 @@
 package com.tennisstats.backend.api;
 
+import com.tennisstats.backend.domain.Player;
 import com.tennisstats.backend.domain.repository.PlayerRepository;
 import com.tennisstats.backend.stats.DecidingSetService;
+import com.tennisstats.backend.stats.HeadToHeadRecord;
 import com.tennisstats.backend.stats.HeadToHeadService;
 import com.tennisstats.backend.stats.PlayerClubService;
 import com.tennisstats.backend.stats.StreakService;
 import com.tennisstats.backend.stats.TieBreakService;
 import com.tennisstats.backend.stats.WinLossService;
 import java.util.List;
+import java.util.stream.Stream;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -68,8 +71,14 @@ public class PlayerStatsController {
         if (opponent == null) {
             return notFound(opponentId);
         }
+        HeadToHeadRecord head = headToHeadService.getHeadToHead(playerId, opponent);
+        List<Long> partnerIds = head.doubles().meetings().stream()
+                .flatMap(meeting -> Stream.concat(meeting.opponents().stream(), Stream.ofNullable(meeting.partner())))
+                .map(Player::getId)
+                .distinct()
+                .toList();
         return ResponseEntity.ok(HeadToHead.from(
-                headToHeadService.getHeadToHead(playerId, opponent), summaryOf(playerId), summaryOf(opponent)));
+                head, summaryOf(playerId), summaryOf(opponent), playerClubService.getClubs(partnerIds)));
     }
 
     // The spec defines no 400 on these paths, so an id that can't be a stored id is just an unknown player.

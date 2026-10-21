@@ -64,7 +64,7 @@ public class RecentMatchesService {
         return participations.stream().map(RubberParticipant::getRubber).toList();
     }
 
-    private static MatchDetail toMatchDetail(RubberParticipant participation, Side winner) {
+    static MatchDetail toMatchDetail(RubberParticipant participation, Side winner) {
         Rubber rubber = participation.getRubber();
         Meeting meeting = rubber.getMeeting();
         Side side = participation.getSide();

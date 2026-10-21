@@ -229,7 +229,80 @@ class PlayerStatsControllerTest {
                 .andExpect(jsonPath("$.record.winPercentage").value(50.0))
                 .andExpect(jsonPath("$.recentResults.length()").value(2))
                 .andExpect(jsonPath("$.recentResults[0]").value("LOSS"))
-                .andExpect(jsonPath("$.recentResults[1]").value("WIN"));
+                .andExpect(jsonPath("$.recentResults[1]").value("WIN"))
+                .andExpect(jsonPath("$.doubles.matchesPlayed").value(0))
+                .andExpect(jsonPath("$.doubles.hasEnoughData").value(false))
+                .andExpect(jsonPath("$.doubles.record").value(nullValue()))
+                .andExpect(jsonPath("$.doubles.meetings.length()").value(0));
+    }
+
+    @Test
+    void returnsDoublesMeetingsSeparatelyFromTheSinglesRecord() throws Exception {
+        annaWinsAgainstBea(LocalDate.of(2026, 5, 3));
+        Player clara = playerRepository.save(new Player("Clara", "Conrad"));
+        Player dana = playerRepository.save(new Player("Dana", "Diehl"));
+
+        // Bea and Dana beat Anna and Clara; Bea plays HOME, so Anna's view is flipped.
+        Meeting meeting = new Meeting(away, home, LocalDate.of(2026, 5, 10));
+        Rubber rubber = meeting.addRubber(RubberType.DOUBLES, 1);
+        rubber.addParticipant(bea, Side.HOME);
+        rubber.addParticipant(dana, Side.HOME);
+        rubber.addParticipant(anna, Side.AWAY);
+        rubber.addParticipant(clara, Side.AWAY);
+        rubber.addSet(1, SetType.REGULAR, 6, 4);
+        rubber.addSet(2, SetType.REGULAR, 7, 6).setTiebreakScore(7, 3);
+        meetingRepository.saveAndFlush(meeting);
+
+        mockMvc.perform(get("/api/v1/players/{id}/head-to-head/{opponentId}", anna.getId(), bea.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.matchesPlayed").value(1))
+                .andExpect(jsonPath("$.record.wins").value(1))
+                .andExpect(jsonPath("$.record.losses").value(0))
+                .andExpect(jsonPath("$.recentResults.length()").value(1))
+                .andExpect(jsonPath("$.doubles.matchesPlayed").value(1))
+                .andExpect(jsonPath("$.doubles.hasEnoughData").value(true))
+                .andExpect(jsonPath("$.doubles.record.wins").value(0))
+                .andExpect(jsonPath("$.doubles.record.losses").value(1))
+                .andExpect(jsonPath("$.doubles.record.winPercentage").value(0.0))
+                .andExpect(jsonPath("$.doubles.meetings.length()").value(1))
+                .andExpect(jsonPath("$.doubles.meetings[0].playedOn").value("2026-05-10"))
+                .andExpect(jsonPath("$.doubles.meetings[0].result").value("LOSS"))
+                .andExpect(jsonPath("$.doubles.meetings[0].partner.id").value(String.valueOf(clara.getId())))
+                .andExpect(jsonPath("$.doubles.meetings[0].partner.name").value("Clara Conrad"))
+                .andExpect(jsonPath("$.doubles.meetings[0].partner.club").value("TC Blau-Weiss"))
+                .andExpect(jsonPath("$.doubles.meetings[0].opponentPartner.name").value("Dana Diehl"))
+                .andExpect(jsonPath("$.doubles.meetings[0].opponentPartner.club").value("TC Rot-Gelb"))
+                .andExpect(jsonPath("$.doubles.meetings[0].ownTeam").value("TC Blau-Weiss 1"))
+                .andExpect(jsonPath("$.doubles.meetings[0].opponentTeam").value("TC Rot-Gelb 1"))
+                .andExpect(jsonPath("$.doubles.meetings[0].sets[0].own").value(4))
+                .andExpect(jsonPath("$.doubles.meetings[0].sets[0].opponent").value(6))
+                .andExpect(jsonPath("$.doubles.meetings[0].sets[1].ownTieBreak").value(3))
+                .andExpect(jsonPath("$.doubles.meetings[0].sets[1].opponentTieBreak").value(7));
+    }
+
+    @Test
+    void reportsADoublesOnlyHeadToHeadWithoutASinglesRecord() throws Exception {
+        Player clara = playerRepository.save(new Player("Clara", "Conrad"));
+        Player dana = playerRepository.save(new Player("Dana", "Diehl"));
+        Meeting meeting = new Meeting(home, away, LocalDate.of(2026, 5, 10));
+        Rubber rubber = meeting.addRubber(RubberType.DOUBLES, 1);
+        rubber.addParticipant(anna, Side.HOME);
+        rubber.addParticipant(clara, Side.HOME);
+        rubber.addParticipant(bea, Side.AWAY);
+        rubber.addParticipant(dana, Side.AWAY);
+        rubber.addSet(1, SetType.REGULAR, 6, 1);
+        rubber.addSet(2, SetType.REGULAR, 6, 2);
+        meetingRepository.saveAndFlush(meeting);
+
+        mockMvc.perform(get("/api/v1/players/{id}/head-to-head/{opponentId}", anna.getId(), bea.getId()))
+                .andExpect(status().isOk())
+                .andExpect(content()
+                        .json("{\"matchesPlayed\":0,\"hasEnoughData\":false,\"record\":null,\"recentResults\":[]}"))
+                .andExpect(jsonPath("$.doubles.hasEnoughData").value(true))
+                .andExpect(jsonPath("$.doubles.record.wins").value(1))
+                .andExpect(jsonPath("$.doubles.meetings[0].result").value("WIN"))
+                .andExpect(jsonPath("$.doubles.meetings[0].partner.name").value("Clara Conrad"))
+                .andExpect(jsonPath("$.doubles.meetings[0].opponentPartner.name").value("Dana Diehl"));
     }
 
     @Test

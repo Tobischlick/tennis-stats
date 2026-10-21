@@ -130,7 +130,7 @@ export interface components {
              */
             winPercentage: number;
         };
-        /** @description Sets that went to a breaker: a regular set decided by a tie-break, or a match tie-break played instead of a third set. Match tie-breaks also count towards `DecidingSetStats`, so the two stats overlap — a won match tie-break is both a won tie-break and a won deciding set. */
+        /** @description Sets that went to a breaker: a regular set decided by a tie-break (one that ended 7:6 or 6:7, see `OverviewFunStats.tieBreaks`), or a match tie-break played instead of a third set (see `OverviewFunStats.matchTieBreaks`). The winner is the side with more games (or points, for a match tie-break). Sets cut short by a retirement are not counted. Match tie-breaks also count towards `DecidingSetStats`, so the two stats overlap — a won match tie-break is both a won tie-break and a won deciding set. */
         TieBreakStats: {
             tieBreaksPlayed: number;
             tieBreaksWon: number;

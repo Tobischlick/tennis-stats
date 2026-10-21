@@ -1,6 +1,5 @@
 package com.tennisstats.backend.stats;
 
-import com.tennisstats.backend.domain.SetType;
 import com.tennisstats.backend.domain.Side;
 import java.util.List;
 import org.springframework.stereotype.Service;
@@ -29,10 +28,8 @@ public class TieBreakService {
     }
 
     private static boolean wonByPlayer(TieBreakSetRow row) {
-        boolean matchTieBreak = row.type() == SetType.MATCH_TIE_BREAK;
-        int homePoints = matchTieBreak ? row.homeScore() : row.homeTiebreakScore();
-        int awayPoints = matchTieBreak ? row.awayScore() : row.awayTiebreakScore();
-        boolean homeWon = homePoints > awayPoints;
+        // Games for a regular set, points for a match tie-break: either way the higher score won.
+        boolean homeWon = row.homeScore() > row.awayScore();
         return row.side() == Side.HOME ? homeWon : !homeWon;
     }
 }

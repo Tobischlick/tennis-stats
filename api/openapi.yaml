@@ -281,32 +281,54 @@ paths:
     get:
       operationId: getRecentMatches
       tags: [players]
-      summary: Get a player's most recent matches with opponents and set scores
+      summary: Get a player's matches with opponents and set scores, newest first
       description: >
         Journeys: scouting an opponent, checking your own progress. Lists
         the player's singles and doubles rubbers, newest first, from the
         player's perspective. Rubbers whose sets don't settle a winner are
-        left out, so the list lines up with `streak.recentResults` on
-        /players/{id}/stats (same matches, same order).
+        left out, so the first page lines up with `streak.recentResults` on
+        /players/{id}/stats (same matches, same order). Without paging
+        parameters it returns the 10 most recent matches; to go through all
+        of them, page with `limit` (at most 100 per request) and `offset`,
+        using the `X-Total-Count` header to know when to stop.
       parameters:
         - $ref: "#/components/parameters/PlayerId"
         - name: limit
           in: query
           required: false
-          description: Maximum number of matches to return.
+          description: Maximum number of matches to return (page size).
           schema:
             type: integer
             minimum: 1
-            maximum: 10
+            maximum: 100
             default: 10
+        - name: offset
+          in: query
+          required: false
+          description: >
+            Number of newest matches to skip. An offset at or past the total
+            returns an empty array.
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
       responses:
         "200":
-          description: The player's most recent matches, newest first. Empty array if the player has none.
+          description: >
+            The requested page of the player's matches, newest first. Empty
+            array if the player has none or `offset` is past the last match.
+          headers:
+            X-Total-Count:
+              description: Total number of the player's matches across all pages.
+              required: true
+              schema:
+                type: integer
+                minimum: 0
           content:
             application/json:
               schema:
                 type: array
-                maxItems: 10
+                maxItems: 100
                 items:
                   $ref: "#/components/schemas/RecentMatch"
               examples:
@@ -350,7 +372,7 @@ paths:
                   summary: Player exists but has no crawled matches yet
                   value: []
         "400":
-          description: "`limit` is not an integer from 1 to 10."
+          description: "`limit` is not an integer from 1 to 100, or `offset` is not a non-negative integer."
           content:
             application/json:
               schema:

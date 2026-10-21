@@ -41,7 +41,8 @@ The palette lives as shadcn/ui theme tokens (`--primary`, `--muted-foreground`,
 | Screen | Structure |
 |---|---|
 | Search | Large centred heading and a tall search field. Results show name and club. The query is in the URL (`?q=`) so a search can be shared. |
-| Player stats | Header with initials, name, club and match count. A one-sentence summary ("Anna gewinnt 64 % der Matches und 36 % der Tie-Breaks – aktuell 3 Siege in Folge"). Cards: Tie-Break-Quote, Aktuelle Form, Bilanz, Letzte Matches (5 visible, rest expandable). Then "Vergleichen mit …". |
+| Player stats | Header with initials, name, club and match count. A one-sentence summary ("Anna gewinnt 64 % der Matches und 36 % der Tie-Breaks – aktuell 3 Siege in Folge"). Cards: Tie-Break-Quote, Aktuelle Form, Bilanz, Letzte Matches (5 visible, rest expandable, plus an "Alle Matches" link). Then "Vergleichen mit …". |
+| All matches | Back link to the player, "Alle Matches" heading with name and match count, then every match newest first in one card per year (same rows as Letzte Matches), 50 per page with "Neuere"/"Ältere" links and "Seite x von y". The page is in the URL (`?seite=`). |
 | Head-to-head | Both players with the score between them, a leader line with full names (first names can clash), recent meetings, "Seiten tauschen", links back to both stats pages. |
 
 ## Empty and edge states
@@ -51,6 +52,8 @@ States that come from missing data are never styled as errors.
 - **No matches yet:** a neutral card with an icon, "Noch nicht genug Matches",
   a sentence on when data will appear and a link to search again. The compare
   picker stays available.
+- **No matches in the full list:** "Noch keine Matches" with a link back to the
+  player's stats.
 - **Never played each other:** "Noch kein direktes Duell" with links to both
   players' stats.
 - **No search results:** "Kein Spieler gefunden" with a spelling hint.

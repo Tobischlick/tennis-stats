@@ -4,6 +4,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -132,8 +133,35 @@ class PlayerMatchesControllerTest {
 
         mockMvc.perform(get("/api/v1/players/{id}/matches", anna.getId()))
                 .andExpect(status().isOk())
+                .andExpect(header().string("X-Total-Count", "12"))
                 .andExpect(jsonPath("$.length()").value(10))
                 .andExpect(jsonPath("$[0].playedOn").value("2026-05-12"));
+    }
+
+    @Test
+    void pagesThroughAllMatchesWithLimitAndOffset() throws Exception {
+        for (int day = 1; day <= 12; day++) {
+            annaWinsAgainstBea(LocalDate.of(2026, 5, day));
+        }
+
+        mockMvc.perform(get("/api/v1/players/{id}/matches", anna.getId())
+                        .param("limit", "100")
+                        .param("offset", "10"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("X-Total-Count", "12"))
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].playedOn").value("2026-05-02"))
+                .andExpect(jsonPath("$[1].playedOn").value("2026-05-01"));
+    }
+
+    @Test
+    void returnsAnEmptyListForAnOffsetPastTheEnd() throws Exception {
+        annaWinsAgainstBea(LocalDate.of(2026, 5, 1));
+
+        mockMvc.perform(get("/api/v1/players/{id}/matches", anna.getId()).param("offset", "5"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("X-Total-Count", "1"))
+                .andExpect(content().json("[]"));
     }
 
     @Test
@@ -149,8 +177,8 @@ class PlayerMatchesControllerTest {
     }
 
     @Test
-    void rejectsALimitOutsideOneToTen() throws Exception {
-        for (String limit : new String[] {"0", "11", "-1", "ten", ""}) {
+    void rejectsALimitOutsideOneToHundred() throws Exception {
+        for (String limit : new String[] {"0", "101", "-1", "ten", ""}) {
             mockMvc.perform(get("/api/v1/players/{id}/matches", anna.getId()).param("limit", limit))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.message").value(containsString("limit")));
@@ -158,9 +186,19 @@ class PlayerMatchesControllerTest {
     }
 
     @Test
+    void rejectsANegativeOrNonNumericOffset() throws Exception {
+        for (String offset : new String[] {"-1", "two", ""}) {
+            mockMvc.perform(get("/api/v1/players/{id}/matches", anna.getId()).param("offset", offset))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.message").value(containsString("offset")));
+        }
+    }
+
+    @Test
     void returnsAnEmptyListForAPlayerWithoutMatches() throws Exception {
         mockMvc.perform(get("/api/v1/players/{id}/matches", anna.getId()))
                 .andExpect(status().isOk())
+                .andExpect(header().string("X-Total-Count", "0"))
                 .andExpect(content().json("[]"));
     }
 

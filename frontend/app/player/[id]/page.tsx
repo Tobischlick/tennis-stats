@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Sprout } from "lucide-react";
+import { ArrowLeft, ChevronRight, Sprout } from "lucide-react";
 import { ComparePicker } from "@/components/compare-picker";
 import { FormDots } from "@/components/form-dots";
 import { Initials } from "@/components/player-list";
@@ -171,6 +171,12 @@ function Stats({ stats, recentMatches }: { stats: PlayerStats; recentMatches: Re
         {recentMatches.length > 0 && (
           <StatCard label="Letzte Matches" className="md:col-span-2">
             <RecentMatches matches={recentMatches} />
+            <Link
+              href={`/player/${stats.playerId}/matches`}
+              className="mt-4 inline-flex items-center gap-1 rounded-md text-sm font-medium text-primary hover:underline focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+            >
+              Alle Matches <ChevronRight aria-hidden className="size-4" />
+            </Link>
           </StatCard>
         )}
       </div>

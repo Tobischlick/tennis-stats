@@ -5,6 +5,7 @@ import {
   formatDate,
   formatPercent,
   formatShortDate,
+  headToHeadSummary,
   isSmallSample,
   matchCount,
   resultLabel,
@@ -95,5 +96,18 @@ describe("wording helpers", () => {
 
   test("firstName takes the first word of the name", () => {
     expect(firstName("Anna Schmidt")).toBe("Anna");
+  });
+});
+
+describe("headToHeadSummary", () => {
+  const record = (wins: number, losses: number) => ({ wins, losses, winPercentage: 0 });
+
+  test("shows singles and doubles side by side", () => {
+    expect(headToHeadSummary(record(1, 0), record(0, 1))).toBe("Einzel 1:0 · Doppel 0:1");
+  });
+
+  test("leaves out a discipline the two never met in", () => {
+    expect(headToHeadSummary(null, record(2, 1))).toBe("Doppel 2:1");
+    expect(headToHeadSummary(record(3, 2), null)).toBe("Einzel 3:2");
   });
 });

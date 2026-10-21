@@ -51,7 +51,7 @@ export function MatchList({ matches }: { matches: RecentMatch[] }) {
   );
 }
 
-function SetResult({ set }: { set: SetScore }) {
+export function SetResult({ set }: { set: SetScore }) {
   const won = set.own > set.opponent;
   const tieBreakLoserPoints =
     set.ownTieBreak !== null && set.opponentTieBreak !== null

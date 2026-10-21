@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ArrowLeftRight, Handshake } from "lucide-react";
+import { DoublesMeetings } from "@/components/doubles-meetings";
 import { Initials } from "@/components/player-list";
 import { getHeadToHead, type PlayerSummary } from "@/lib/api-client";
+import { headToHeadSummary } from "@/lib/format";
 
 export default async function HeadToHeadPage({ params }: PageProps<"/player/[id]/vs/[opponentId]">) {
   const { id, opponentId } = await params;
@@ -10,7 +12,7 @@ export default async function HeadToHeadPage({ params }: PageProps<"/player/[id]
   const h2h = await getHeadToHead(id, opponentId);
   if (!h2h) notFound();
 
-  const { player, opponent, record } = h2h;
+  const { player, opponent, record, doubles } = h2h;
 
   return (
     <div>
@@ -52,15 +54,23 @@ export default async function HeadToHeadPage({ params }: PageProps<"/player/[id]
         <PlayerSide player={opponent} />
       </section>
 
+      {doubles.record && (
+        <p className="mt-6 text-center text-sm font-medium text-muted-foreground tabular-nums">
+          {headToHeadSummary(record, doubles.record)}
+        </p>
+      )}
+
       {record ? (
         <>
           <p className="mt-8 text-center text-lg text-balance md:mt-10 md:text-xl">
-            {leaderLine(player.name, opponent.name, record.wins, record.losses, h2h.matchesPlayed)}
+            {leaderLine(player.name, opponent.name, record.wins, record.losses, h2h.matchesPlayed, !!doubles.record)}
           </p>
 
           <section className="mx-auto mt-10 max-w-2xl md:mt-12">
             <div className="flex items-baseline justify-between gap-3">
-              <h2 className="text-sm font-medium text-muted-foreground">Letzte Duelle</h2>
+              <h2 className="text-sm font-medium text-muted-foreground">
+                {doubles.record ? "Letzte Duelle im Einzel" : "Letzte Duelle"}
+              </h2>
               <span className="text-xs text-muted-foreground">Neuestes oben</span>
             </div>
             <ol className="mt-3 divide-y divide-border overflow-hidden rounded-3xl border border-border bg-card">
@@ -86,6 +96,10 @@ export default async function HeadToHeadPage({ params }: PageProps<"/player/[id]
             </ol>
           </section>
         </>
+      ) : doubles.record ? (
+        <p className="mx-auto mt-8 max-w-xl text-center text-balance text-muted-foreground md:mt-10">
+          Noch kein Einzel gegeneinander – {player.name} und {opponent.name} haben sich bisher nur im Doppel getroffen.
+        </p>
       ) : (
         <section className="mx-auto mt-10 max-w-xl rounded-3xl border border-border bg-card px-5 py-10 text-center md:px-8 md:py-12">
           <span className="mx-auto flex size-14 items-center justify-center rounded-full bg-primary-soft">
@@ -99,6 +113,20 @@ export default async function HeadToHeadPage({ params }: PageProps<"/player/[id]
           <div className="mt-6 flex flex-col justify-center gap-2 sm:flex-row">
             <StatsLink player={player} />
             <StatsLink player={opponent} />
+          </div>
+        </section>
+      )}
+
+      {doubles.record && (
+        <section className="mx-auto mt-10 max-w-2xl md:mt-12">
+          <div className="flex items-baseline justify-between gap-3">
+            <h2 className="text-sm font-medium text-muted-foreground">
+              Im Doppel gegeneinander · {doubles.record.wins}:{doubles.record.losses}
+            </h2>
+            <span className="text-xs text-muted-foreground">Neuestes oben</span>
+          </div>
+          <div className="mt-3 overflow-hidden rounded-3xl border border-border bg-card">
+            <DoublesMeetings meetings={doubles.meetings} opponentName={opponent.name} />
           </div>
         </section>
       )}
@@ -131,8 +159,15 @@ function StatsLink({ player }: { player: PlayerSummary }) {
   );
 }
 
-function leaderLine(player: string, opponent: string, wins: number, losses: number, played: number): string {
-  const duels = played === 1 ? "1 Duell" : `${played} Duellen`;
+function leaderLine(
+  player: string,
+  opponent: string,
+  wins: number,
+  losses: number,
+  played: number,
+  alsoDoubles: boolean,
+): string {
+  const duels = `${played === 1 ? "1 Duell" : `${played} Duellen`}${alsoDoubles ? " im Einzel" : ""}`;
   if (wins === losses) return `Ausgeglichen nach ${duels}.`;
   return `${wins > losses ? player : opponent} führt nach ${duels}.`;
 }

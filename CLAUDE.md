@@ -28,6 +28,6 @@ Once a `feature/*` branch is merged into `main` (by the maintainer or by Claude)
 - Leave `renovate/*` branches alone; Renovate manages them.
 
 ## CI
-- `.github/workflows/backend-ci.yml` runs backend tests on every PR targeting `main`.
-- `.github/workflows/frontend-ci.yml` runs frontend lint, a stale API types check (`npm run gen:api` must not change `lib/api/schema.d.ts`), build and tests (once a `test` script exists) on every PR targeting `main`.
+- `.github/workflows/backend-ci.yml` runs backend tests on every PR targeting `main` and on every push to `main` (i.e. after each merge).
+- `.github/workflows/frontend-ci.yml` runs frontend lint, a stale API types check (`npm run gen:api` must not change `lib/api/schema.d.ts`), build and tests (once a `test` script exists) on every PR targeting `main` and on every push to `main`.
 - `main` is protected by the "Protect main" ruleset: no direct pushes, PRs need a code-owner review (see `CODEOWNERS`) and both checks (`test`, `check`) passing on an up-to-date branch. Only Renovate may merge its own PRs without a review.

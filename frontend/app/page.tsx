@@ -1,16 +1,17 @@
 import { Suspense } from "react";
 import { SearchX } from "lucide-react";
+import { DatabaseOverview, DatabaseOverviewSkeleton } from "@/components/database-overview";
 import { PlayerList } from "@/components/player-list";
 import { SearchForm } from "@/components/search-form";
 import { Skeleton } from "@/components/ui/skeleton";
 import { searchPlayers } from "@/lib/api-client";
+import { MIN_QUERY_LENGTH, normalizeQuery } from "@/lib/search";
 
 export default async function SearchPage({ searchParams }: PageProps<"/">) {
-  const raw = (await searchParams).q;
-  const query = (Array.isArray(raw) ? raw[0] : raw)?.trim() ?? "";
+  const query = normalizeQuery((await searchParams).q);
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="group mx-auto max-w-2xl">
       <div className={query ? "pt-2 md:pt-6" : "pt-10 md:pt-24"}>
         {!query && (
           <div className="mb-8 text-center md:mb-10">
@@ -20,13 +21,29 @@ export default async function SearchPage({ searchParams }: PageProps<"/">) {
             </p>
           </div>
         )}
-        <SearchForm defaultValue={query} autoFocus={!query} />
+        <SearchForm query={query} autoFocus={!query} />
       </div>
 
+      {!query && (
+        <div className="transition-opacity group-has-data-pending:opacity-60">
+          <Suspense fallback={<DatabaseOverviewSkeleton />}>
+            <DatabaseOverview />
+          </Suspense>
+        </div>
+      )}
+
       {query && (
-        <Suspense key={query} fallback={<ResultsSkeleton />}>
-          <Results query={query} />
-        </Suspense>
+        <div className="transition-opacity group-has-data-pending:opacity-60">
+          {query.length < MIN_QUERY_LENGTH ? (
+            <p className="mt-8 text-center text-muted-foreground md:mt-10">
+              Gib mindestens {MIN_QUERY_LENGTH} Zeichen ein.
+            </p>
+          ) : (
+            <Suspense fallback={<ResultsSkeleton />}>
+              <Results query={query} />
+            </Suspense>
+          )}
+        </div>
       )}
     </div>
   );

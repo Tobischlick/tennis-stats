@@ -14,8 +14,91 @@ security: [] # no auth in v1 — see docs/arc42/01_introduction_and_goals/vision
 tags:
   - name: players
     description: Player search and player stats.
+  - name: overview
+    description: Database totals and fun stats for the landing page.
 
 paths:
+  /overview:
+    get:
+      operationId: getOverview
+      tags: [overview]
+      summary: Get database totals and a few fun stats
+      description: >
+        Landing page overview: how much data the stats are based on, plus a
+        few fun facts. Database-wide; no fun stat names or identifies a
+        player. A "match" is one singles or doubles rubber, a "meeting" is
+        the team-level event made up of rubbers. On an empty database every
+        count is 0, `hasData` is false and the date range,
+        `decidingSetPercentage` and `mostCommonScoreLine` are null.
+
+        Walkovers and retirements: nuLiga marks the side that retired,
+        conceded a walkover or didn't turn up with "(w.o.)". Such a rubber
+        counts as a match (`totals.matches`) and towards
+        `funStats.longestWinStreak` (won by the other side, as on the player
+        page), but not as a completed match, so it's left out of the
+        deciding-set share and the most common score line. Sets cut short by
+        a retirement count as neither sets nor (match) tie-breaks; a walkover
+        has no sets. A rubber where a side wasn't fielded at all is never
+        stored, so it's not counted anywhere.
+      responses:
+        "200":
+          description: Database totals and fun stats.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Overview"
+              examples:
+                withData:
+                  summary: A crawled database
+                  value:
+                    hasData: true
+                    totals:
+                      players: 1843
+                      clubs: 97
+                      teams: 212
+                      meetings: 618
+                      matches:
+                        total: 5562
+                        singles: 3708
+                        doubles: 1854
+                      sets: 11873
+                      firstPlayedOn: "2026-04-25"
+                      lastPlayedOn: "2026-07-19"
+                    funStats:
+                      tieBreaks: 702
+                      matchTieBreaks: 611
+                      completedMatches: 5431
+                      decidingSetMatches: 774
+                      decidingSetPercentage: 14.3
+                      mostCommonScoreLine:
+                        scoreLine: "6:0 6:0"
+                        count: 241
+                      longestWinStreak: 12
+                empty:
+                  summary: Nothing crawled yet
+                  value:
+                    hasData: false
+                    totals:
+                      players: 0
+                      clubs: 0
+                      teams: 0
+                      meetings: 0
+                      matches:
+                        total: 0
+                        singles: 0
+                        doubles: 0
+                      sets: 0
+                      firstPlayedOn: null
+                      lastPlayedOn: null
+                    funStats:
+                      tieBreaks: 0
+                      matchTieBreaks: 0
+                      completedMatches: 0
+                      decidingSetMatches: 0
+                      decidingSetPercentage: null
+                      mostCommonScoreLine: null
+                      longestWinStreak: 0
+
   /players:
     get:
       operationId: searchPlayers
@@ -268,32 +351,54 @@ paths:
     get:
       operationId: getRecentMatches
       tags: [players]
-      summary: Get a player's most recent matches with opponents and set scores
+      summary: Get a player's matches with opponents and set scores, newest first
       description: >
         Journeys: scouting an opponent, checking your own progress. Lists
         the player's singles and doubles rubbers, newest first, from the
         player's perspective. Rubbers whose sets don't settle a winner are
-        left out, so the list lines up with `streak.recentResults` on
-        /players/{id}/stats (same matches, same order).
+        left out, so the first page lines up with `streak.recentResults` on
+        /players/{id}/stats (same matches, same order). Without paging
+        parameters it returns the 10 most recent matches; to go through all
+        of them, page with `limit` (at most 100 per request) and `offset`,
+        using the `X-Total-Count` header to know when to stop.
       parameters:
         - $ref: "#/components/parameters/PlayerId"
         - name: limit
           in: query
           required: false
-          description: Maximum number of matches to return.
+          description: Maximum number of matches to return (page size).
           schema:
             type: integer
             minimum: 1
-            maximum: 10
+            maximum: 100
             default: 10
+        - name: offset
+          in: query
+          required: false
+          description: >
+            Number of newest matches to skip. An offset at or past the total
+            returns an empty array.
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
       responses:
         "200":
-          description: The player's most recent matches, newest first. Empty array if the player has none.
+          description: >
+            The requested page of the player's matches, newest first. Empty
+            array if the player has none or `offset` is past the last match.
+          headers:
+            X-Total-Count:
+              description: Total number of the player's matches across all pages.
+              required: true
+              schema:
+                type: integer
+                minimum: 0
           content:
             application/json:
               schema:
                 type: array
-                maxItems: 10
+                maxItems: 100
                 items:
                   $ref: "#/components/schemas/RecentMatch"
               examples:
@@ -337,7 +442,7 @@ paths:
                   summary: Player exists but has no crawled matches yet
                   value: []
         "400":
-          description: "`limit` is not an integer from 1 to 10."
+          description: "`limit` is not an integer from 1 to 100, or `offset` is not a non-negative integer."
           content:
             application/json:
               schema:
@@ -705,3 +810,166 @@ components:
         message:
           type: string
           example: "No player with id 'zzz999'"
+
+    Overview:
+      type: object
+      description: >
+        Database totals and fun stats, see GET /overview for how walkovers
+        and retirements are treated.
+      required: [hasData, totals, funStats]
+      properties:
+        hasData:
+          type: boolean
+          description: False when no match is stored yet (`totals.matches.total` is 0).
+        totals:
+          $ref: "#/components/schemas/OverviewTotals"
+        funStats:
+          $ref: "#/components/schemas/OverviewFunStats"
+
+    OverviewTotals:
+      type: object
+      required: [players, clubs, teams, meetings, matches, sets, firstPlayedOn, lastPlayedOn]
+      properties:
+        players:
+          type: integer
+          minimum: 0
+          description: Stored players.
+        clubs:
+          type: integer
+          minimum: 0
+          description: >
+            Distinct clubs, i.e. team names without the trailing team number
+            ("TC Weinheim 1902 2" → "TC Weinheim 1902"), as for
+            `PlayerSummary.club`.
+        teams:
+          type: integer
+          minimum: 0
+          description: Stored teams (e.g. "TC Blau-Weiss Karlsruhe 1" and "... 2" are two teams of one club).
+        meetings:
+          type: integer
+          minimum: 0
+          description: Stored team meetings (crawled match reports).
+        matches:
+          $ref: "#/components/schemas/OverviewMatchCounts"
+        sets:
+          type: integer
+          minimum: 0
+          description: >
+            Sets played to the end, a match tie-break counting as one set;
+            sets cut short by a retirement are left out.
+        firstPlayedOn:
+          type: string
+          format: date
+          nullable: true
+          description: Date of the earliest stored meeting; null on an empty database.
+          example: "2026-04-25"
+        lastPlayedOn:
+          type: string
+          format: date
+          nullable: true
+          description: Date of the latest stored meeting; null on an empty database.
+          example: "2026-07-19"
+
+    OverviewMatchCounts:
+      type: object
+      description: >
+        Stored singles and doubles rubbers, including walkovers, retirements
+        and rubbers whose sets don't settle a winner.
+      required: [total, singles, doubles]
+      properties:
+        total:
+          type: integer
+          minimum: 0
+          description: singles + doubles.
+        singles:
+          type: integer
+          minimum: 0
+        doubles:
+          type: integer
+          minimum: 0
+
+    OverviewFunStats:
+      type: object
+      description: Database-wide fun facts; numbers only, no player is named.
+      required:
+        - tieBreaks
+        - matchTieBreaks
+        - completedMatches
+        - decidingSetMatches
+        - decidingSetPercentage
+        - mostCommonScoreLine
+        - longestWinStreak
+      properties:
+        tieBreaks:
+          type: integer
+          minimum: 0
+          description: >
+            Regular sets decided by a tie-break: sets that ended 7:6 or 6:7
+            (nuLiga reports these without the breaker score). Match
+            tie-breaks are not included, see `matchTieBreaks`.
+        matchTieBreaks:
+          type: integer
+          minimum: 0
+          description: >
+            Match tie-breaks played to the end: a deciding third set played
+            as a single tie-break to 10 points (stored when either side
+            reached 10 or more points, won by two). A match tie-break cut
+            short by a retirement is not counted.
+        completedMatches:
+          type: integer
+          minimum: 0
+          description: >
+            Rubbers played to the end with a winner: no walkover or
+            retirement, and one side won more sets. The base of
+            `decidingSetPercentage` and `mostCommonScoreLine`.
+        decidingSetMatches:
+          type: integer
+          minimum: 0
+          description: >
+            Completed matches that went to a third set, whether played as a
+            regular set or as a match tie-break.
+        decidingSetPercentage:
+          type: number
+          format: float
+          nullable: true
+          minimum: 0
+          maximum: 100
+          description: >
+            decidingSetMatches / completedMatches * 100, rounded to one
+            decimal; null when completedMatches is 0.
+        mostCommonScoreLine:
+          type: object
+          nullable: true
+          description: Null when completedMatches is 0.
+          allOf:
+            - $ref: "#/components/schemas/OverviewScoreLine"
+        longestWinStreak:
+          type: integer
+          minimum: 0
+          description: >
+            The most consecutive wins by any one player, singles and doubles
+            together, in the order played (meeting date, then meeting, then
+            the rubber's position in the report). Walkovers and retirements
+            count as a win for the other side; rubbers whose sets don't
+            settle a winner are skipped and don't end a streak. Only the
+            number is given, not the player. 0 when no match has a winner.
+
+    OverviewScoreLine:
+      type: object
+      description: >
+        The final score most completed matches ended with, singles and
+        doubles together, from the winner's perspective.
+      required: [scoreLine, count]
+      properties:
+        scoreLine:
+          type: string
+          description: >
+            Set scores in the order played, each as "winner:loser" (games, or
+            points for a match tie-break), separated by a single space. On a
+            tie in `count`, the lexicographically first score line (by character
+            code) wins.
+          example: "6:4 3:6 10:8"
+        count:
+          type: integer
+          minimum: 1
+          description: Completed matches that ended with this score line.

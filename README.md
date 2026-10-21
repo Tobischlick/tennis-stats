@@ -1,4 +1,9 @@
+[![Java Version](https://img.shields.io/badge/Java-25-orange)](https://openjdk.org/projects/jdk/25)
+[![Backend CI](https://github.com/Tobischlick/tennis-stats/actions/workflows/backend-ci.yml/badge.svg?branch=main)](https://github.com/Tobischlick/tennis-stats/actions/workflows/backend-ci.yml)
+[![Frontend CI](https://github.com/Tobischlick/tennis-stats/actions/workflows/frontend-ci.yml/badge.svg?branch=main)](https://github.com/Tobischlick/tennis-stats/actions/workflows/frontend-ci.yml)
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/Tobischlick/tennis-stats)
+![GitHub](https://img.shields.io/github/license/Tobischlick/tennis-stats)
+![GitHub top language](https://img.shields.io/github/languages/top/Tobischlick/tennis-stats)
 
 # Tennis Stats
 
@@ -7,7 +12,7 @@ match results into a database and surfaces stats (win/loss, tie-breaks,
 head-to-head, and more) that BTV itself doesn't show.
 
 **Built by AI agents:** this repo is almost entirely written by Claude Code.
-Work is scoped into epics and stories as GitHub issues; each story is
+Work is scoped into stories as GitHub issues; each story is
 implemented end-to-end by a Claude Code subagent in its own branch, then
 reviewed and merged by the human owner, who also drives the product vision
 and architecture docs in conversation with Claude Code.

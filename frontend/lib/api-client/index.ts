@@ -2,7 +2,7 @@ import "server-only";
 import { cache } from "react";
 import createClient from "openapi-fetch";
 import type { paths } from "@/lib/api/schema";
-import type { HeadToHead, PlayerStats, PlayerSummary, RecentMatch } from "./types";
+import type { HeadToHead, Overview, PlayerStats, PlayerSummary, RecentMatch } from "./types";
 
 export type * from "./types";
 
@@ -55,10 +55,32 @@ export async function getRecentMatches(id: string): Promise<RecentMatch[] | unde
   return orNotFound("getRecentMatches", result);
 }
 
+/** One page of matches, newest first, plus the total across all pages; `undefined` when there is no player with this id. */
+export async function getMatchesPage(
+  id: string,
+  offset: number,
+  limit: number,
+): Promise<{ matches: RecentMatch[]; total: number } | undefined> {
+  const result = await send("getMatchesPage", () =>
+    client.GET("/players/{id}/matches", { params: { path: { id }, query: { offset, limit } } }),
+  );
+  const matches = orNotFound("getMatchesPage", result);
+  if (!matches) return undefined;
+  const total = Number(result.response.headers.get("X-Total-Count") ?? NaN);
+  if (!Number.isInteger(total) || total < 0) throw new Error("getMatchesPage: backend sent no X-Total-Count header");
+  return { matches, total };
+}
+
 /** `undefined` when either player does not exist. */
 export async function getHeadToHead(id: string, opponentId: string): Promise<HeadToHead | undefined> {
   const result = await send("getHeadToHead", () =>
     client.GET("/players/{id}/head-to-head/{opponentId}", { params: { path: { id, opponentId } } }),
   );
   return orNotFound("getHeadToHead", result);
+}
+
+export async function getOverview(): Promise<Overview> {
+  const { data, response } = await send("getOverview", () => client.GET("/overview"));
+  if (!response.ok || data === undefined) throw new Error(`getOverview: backend answered HTTP ${response.status}`);
+  return data;
 }

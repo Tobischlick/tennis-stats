@@ -4,6 +4,27 @@
  */
 
 export interface paths {
+    "/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get database totals and a few fun stats
+         * @description Landing page overview: how much data the stats are based on, plus a few fun facts. Database-wide; no fun stat names or identifies a player. A "match" is one singles or doubles rubber, a "meeting" is the team-level event made up of rubbers. On an empty database every count is 0, `hasData` is false and the date range, `decidingSetPercentage` and `mostCommonScoreLine` are null.
+         *     Walkovers and retirements: nuLiga marks the side that retired, conceded a walkover or didn't turn up with "(w.o.)". Such a rubber counts as a match (`totals.matches`) and towards `funStats.longestWinStreak` (won by the other side, as on the player page), but not as a completed match, so it's left out of the deciding-set share and the most common score line. Sets cut short by a retirement count as neither sets nor (match) tie-breaks; a walkover has no sets. A rubber where a side wasn't fielded at all is never stored, so it's not counted anywhere.
+         */
+        get: operations["getOverview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/players": {
         parameters: {
             query?: never;
@@ -72,8 +93,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get a player's most recent matches with opponents and set scores
-         * @description Journeys: scouting an opponent, checking your own progress. Lists the player's singles and doubles rubbers, newest first, from the player's perspective. Rubbers whose sets don't settle a winner are left out, so the list lines up with `streak.recentResults` on /players/{id}/stats (same matches, same order).
+         * Get a player's matches with opponents and set scores, newest first
+         * @description Journeys: scouting an opponent, checking your own progress. Lists the player's singles and doubles rubbers, newest first, from the player's perspective. Rubbers whose sets don't settle a winner are left out, so the first page lines up with `streak.recentResults` on /players/{id}/stats (same matches, same order). Without paging parameters it returns the 10 most recent matches; to go through all of them, page with `limit` (at most 100 per request) and `offset`, using the `X-Total-Count` header to know when to stop.
          */
         get: operations["getRecentMatches"];
         put?: never;
@@ -207,6 +228,75 @@ export interface components {
             /** @example No player with id 'zzz999' */
             message: string;
         };
+        /** @description Database totals and fun stats, see GET /overview for how walkovers and retirements are treated. */
+        Overview: {
+            /** @description False when no match is stored yet (`totals.matches.total` is 0). */
+            hasData: boolean;
+            totals: components["schemas"]["OverviewTotals"];
+            funStats: components["schemas"]["OverviewFunStats"];
+        };
+        OverviewTotals: {
+            /** @description Stored players. */
+            players: number;
+            /** @description Distinct clubs, i.e. team names without the trailing team number ("TC Weinheim 1902 2" → "TC Weinheim 1902"), as for `PlayerSummary.club`. */
+            clubs: number;
+            /** @description Stored teams (e.g. "TC Blau-Weiss Karlsruhe 1" and "... 2" are two teams of one club). */
+            teams: number;
+            /** @description Stored team meetings (crawled match reports). */
+            meetings: number;
+            matches: components["schemas"]["OverviewMatchCounts"];
+            /** @description Sets played to the end, a match tie-break counting as one set; sets cut short by a retirement are left out. */
+            sets: number;
+            /**
+             * Format: date
+             * @description Date of the earliest stored meeting; null on an empty database.
+             * @example 2026-04-25
+             */
+            firstPlayedOn: string | null;
+            /**
+             * Format: date
+             * @description Date of the latest stored meeting; null on an empty database.
+             * @example 2026-07-19
+             */
+            lastPlayedOn: string | null;
+        };
+        /** @description Stored singles and doubles rubbers, including walkovers, retirements and rubbers whose sets don't settle a winner. */
+        OverviewMatchCounts: {
+            /** @description singles + doubles. */
+            total: number;
+            singles: number;
+            doubles: number;
+        };
+        /** @description Database-wide fun facts; numbers only, no player is named. */
+        OverviewFunStats: {
+            /** @description Regular sets decided by a tie-break: sets that ended 7:6 or 6:7 (nuLiga reports these without the breaker score). Match tie-breaks are not included, see `matchTieBreaks`. */
+            tieBreaks: number;
+            /** @description Match tie-breaks played to the end: a deciding third set played as a single tie-break to 10 points (stored when either side reached 10 or more points, won by two). A match tie-break cut short by a retirement is not counted. */
+            matchTieBreaks: number;
+            /** @description Rubbers played to the end with a winner: no walkover or retirement, and one side won more sets. The base of `decidingSetPercentage` and `mostCommonScoreLine`. */
+            completedMatches: number;
+            /** @description Completed matches that went to a third set, whether played as a regular set or as a match tie-break. */
+            decidingSetMatches: number;
+            /**
+             * Format: float
+             * @description decidingSetMatches / completedMatches * 100, rounded to one decimal; null when completedMatches is 0.
+             */
+            decidingSetPercentage: number | null;
+            /** @description Null when completedMatches is 0. */
+            mostCommonScoreLine: components["schemas"]["OverviewScoreLine"] | null;
+            /** @description The most consecutive wins by any one player, singles and doubles together, in the order played (meeting date, then meeting, then the rubber's position in the report). Walkovers and retirements count as a win for the other side; rubbers whose sets don't settle a winner are skipped and don't end a streak. Only the number is given, not the player. 0 when no match has a winner. */
+            longestWinStreak: number;
+        };
+        /** @description The final score most completed matches ended with, singles and doubles together, from the winner's perspective. */
+        OverviewScoreLine: {
+            /**
+             * @description Set scores in the order played, each as "winner:loser" (games, or points for a match tie-break), separated by a single space. On a tie in `count`, the lexicographically first score line (by character code) wins.
+             * @example 6:4 3:6 10:8
+             */
+            scoreLine: string;
+            /** @description Completed matches that ended with this score line. */
+            count: number;
+        };
     };
     responses: never;
     parameters: {
@@ -219,6 +309,26 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    getOverview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Database totals and fun stats. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Overview"];
+                };
+            };
+        };
+    };
     searchPlayers: {
         parameters: {
             query: {
@@ -334,8 +444,10 @@ export interface operations {
     getRecentMatches: {
         parameters: {
             query?: {
-                /** @description Maximum number of matches to return. */
+                /** @description Maximum number of matches to return (page size). */
                 limit?: number;
+                /** @description Number of newest matches to skip. An offset at or past the total returns an empty array. */
+                offset?: number;
             };
             header?: never;
             path: {
@@ -346,16 +458,18 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description The player's most recent matches, newest first. Empty array if the player has none. */
+            /** @description The requested page of the player's matches, newest first. Empty array if the player has none or `offset` is past the last match. */
             200: {
                 headers: {
+                    /** @description Total number of the player's matches across all pages. */
+                    "X-Total-Count": number;
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": components["schemas"]["RecentMatch"][];
                 };
             };
-            /** @description `limit` is not an integer from 1 to 10. */
+            /** @description `limit` is not an integer from 1 to 100, or `offset` is not a non-negative integer. */
             400: {
                 headers: {
                     [name: string]: unknown;

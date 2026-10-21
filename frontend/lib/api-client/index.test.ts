@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import type { PlayerStats, PlayerSummary } from "./types";
+import type { Overview, PlayerStats, PlayerSummary } from "./types";
 
 // openapi-fetch captures globalThis.fetch when the client is created at import time.
 const fetchMock = vi.hoisted(() => {
@@ -8,13 +8,13 @@ const fetchMock = vi.hoisted(() => {
   return mock;
 });
 
-import { getHeadToHead, getPlayerStats, getRecentMatches, searchPlayers } from "./index";
+import { getHeadToHead, getMatchesPage, getOverview, getPlayerStats, getRecentMatches, searchPlayers } from "./index";
 
-function respond(status: number, body?: unknown) {
+function respond(status: number, body?: unknown, headers: Record<string, string> = {}) {
   fetchMock.mockResolvedValueOnce(
     new Response(body === undefined ? null : JSON.stringify(body), {
       status,
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...headers },
     }),
   );
 }
@@ -55,6 +55,7 @@ describe("searchPlayers", () => {
 describe.each([
   ["getPlayerStats", () => getPlayerStats("p1")],
   ["getRecentMatches", () => getRecentMatches("p1")],
+  ["getMatchesPage", () => getMatchesPage("p1", 0, 50)],
   ["getHeadToHead", () => getHeadToHead("p1", "p2")],
 ])("%s", (_, call) => {
   test("returns undefined on 404", async () => {
@@ -86,4 +87,64 @@ test("getPlayerStats returns the body on 200", async () => {
   };
   respond(200, stats);
   await expect(getPlayerStats("p1")).resolves.toEqual(stats);
+});
+
+describe("getMatchesPage", () => {
+  test("returns the matches and the total from X-Total-Count", async () => {
+    respond(200, [], { "X-Total-Count": "73" });
+    await expect(getMatchesPage("p1", 50, 50)).resolves.toEqual({ matches: [], total: 73 });
+  });
+
+  test("sends offset and limit as query parameters", async () => {
+    respond(200, [], { "X-Total-Count": "0" });
+    await getMatchesPage("p1", 50, 25);
+    const url = new URL((fetchMock.mock.calls[0][0] as Request).url);
+    expect(url.pathname).toMatch(/\/players\/p1\/matches$/);
+    expect(url.searchParams.get("offset")).toBe("50");
+    expect(url.searchParams.get("limit")).toBe("25");
+  });
+
+  test("throws when the total header is missing", async () => {
+    respond(200, []);
+    await expect(getMatchesPage("p1", 0, 50)).rejects.toThrow("X-Total-Count");
+  });
+});
+
+describe("getOverview", () => {
+  test("returns the body on 200", async () => {
+    const overview: Overview = {
+      hasData: false,
+      totals: {
+        players: 0,
+        clubs: 0,
+        teams: 0,
+        meetings: 0,
+        matches: { total: 0, singles: 0, doubles: 0 },
+        sets: 0,
+        firstPlayedOn: null,
+        lastPlayedOn: null,
+      },
+      funStats: {
+        tieBreaks: 0,
+        matchTieBreaks: 0,
+        completedMatches: 0,
+        decidingSetMatches: 0,
+        decidingSetPercentage: null,
+        mostCommonScoreLine: null,
+        longestWinStreak: 0,
+      },
+    };
+    respond(200, overview);
+    await expect(getOverview()).resolves.toEqual(overview);
+  });
+
+  test("throws on non-2xx responses", async () => {
+    respond(500);
+    await expect(getOverview()).rejects.toThrow("HTTP 500");
+  });
+
+  test("throws when the backend is unreachable", async () => {
+    fetchMock.mockRejectedValueOnce(new TypeError("fetch failed"));
+    await expect(getOverview()).rejects.toThrow("backend not reachable");
+  });
 });

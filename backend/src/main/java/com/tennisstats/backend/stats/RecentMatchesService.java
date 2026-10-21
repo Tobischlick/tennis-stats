@@ -13,7 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Lists a player's most recent rubbers (singles and doubles) with opponents and set scores.
+ * Lists a player's rubbers (singles and doubles) with opponents and set scores, one page at a time.
  *
  * <p>Selection and order deliberately mirror {@link StreakService}: newest {@link
  * Meeting#getPlayedOn()} first, rubbers whose sets don't settle a winner skipped, so the list lines
@@ -29,35 +29,35 @@ public class RecentMatchesService {
     }
 
     @Transactional(readOnly = true)
-    public List<MatchDetail> getRecentMatches(Long playerId, int limit) {
+    public MatchPage getMatches(Long playerId, int offset, int limit) {
         List<RubberParticipant> participations = recentMatchRepository.findParticipationsNewestFirst(playerId);
         if (participations.isEmpty()) {
-            return List.of();
+            return new MatchPage(List.of(), 0);
         }
         recentMatchRepository.fetchSets(rubbersOf(participations));
 
-        List<RubberParticipant> selected = new ArrayList<>();
+        List<RubberParticipant> settled = new ArrayList<>();
         List<Side> winners = new ArrayList<>();
         for (RubberParticipant participation : participations) {
-            if (selected.size() == limit) {
-                break;
-            }
             Side winner = RubberOutcome.winnerOf(participation.getRubber());
             if (winner != null) {
-                selected.add(participation);
+                settled.add(participation);
                 winners.add(winner);
             }
         }
-        if (selected.isEmpty()) {
-            return List.of();
+        int from = Math.min(offset, settled.size());
+        int to = Math.min(from + limit, settled.size());
+        if (from == to) {
+            return new MatchPage(List.of(), settled.size());
         }
+        List<RubberParticipant> selected = settled.subList(from, to);
         recentMatchRepository.fetchParticipants(rubbersOf(selected));
 
         List<MatchDetail> matches = new ArrayList<>();
-        for (int i = 0; i < selected.size(); i++) {
-            matches.add(toMatchDetail(selected.get(i), winners.get(i)));
+        for (int i = from; i < to; i++) {
+            matches.add(toMatchDetail(settled.get(i), winners.get(i)));
         }
-        return List.copyOf(matches);
+        return new MatchPage(List.copyOf(matches), settled.size());
     }
 
     private static List<Rubber> rubbersOf(List<RubberParticipant> participations) {

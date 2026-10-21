@@ -37,7 +37,7 @@ graph TD
 | Package | Responsibility |
 |---|---|
 | `api` | REST controllers and request/response DTOs — the only package the frontend's contract touches. Exposes an OpenAPI spec so the frontend can generate a typed client (needed since Java and TS don't share types — see [ADR-0001](../09_architecture_decisions/adr-0001-technology-stack.md)). |
-| `stats` | Turns raw match/set rows into the derived numbers the vision calls for (win/loss, tie-break rate, streaks, deciding-set record, head-to-head). Kept separate from `api` so stat logic is testable without HTTP. |
+| `stats` | Turns raw match/set rows into the derived numbers the vision calls for (win/loss, tie-break rate, streaks, deciding-set record, head-to-head, database overview). Kept separate from `api` so stat logic is testable without HTTP. |
 | `domain` | JPA entities (`Player`, `Team`, `Match`, `Set`, ...) and Spring Data repositories. The one place that knows the DB schema. |
 | `crawler` | JSoup-based fetch + parse of nuLiga's group/meeting pages, started by a one-shot runner in crawler mode (started locally, see [ADR-0002](../09_architecture_decisions/adr-0002-crawler-execution.md) and [ADR-0003](../09_architecture_decisions/adr-0003-local-only.md)), writing through `domain`'s repositories. The only package that talks to nuLiga. |
 
@@ -45,7 +45,7 @@ graph TD
 
 | Directory | Responsibility |
 |---|---|
-| `app/` (routes) | Pages: player search, player stats page, head-to-head — per the journeys in [user-journeys.md](../01_introduction_and_goals/user-journeys.md). |
+| `app/` (routes) | Pages: player search, player stats page, a player's full match list, head-to-head — per the journeys in [user-journeys.md](../01_introduction_and_goals/user-journeys.md). |
 | `components/` | UI building blocks (search box, stat cards, empty/loading states) using Tailwind + shadcn/ui, styled per the [UI concept](../08_crosscutting_concepts/ui_concept.md). |
 | `lib/api-client` | Typed client (`openapi-fetch` over types generated from the backend's OpenAPI spec) — the frontend's only path to data, no direct DB access. Server-only; the backend URL comes from `TENNIS_STATS_API_BASE_URL`. |
 

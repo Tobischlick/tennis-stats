@@ -15,19 +15,18 @@ more) that BTV itself doesn't show. See
 - Short, single-line commit messages only — no multi-paragraph bodies.
 
 ## Issues
-- Every epic issue must follow [docs/templates/epic.md](docs/templates/epic.md).
-- Every story issue must follow [docs/templates/story.md](docs/templates/story.md).
-- Bugs don't need an epic: file them with the `bug` label and the story template without the `**Epic:**` line.
+- Every issue is a standalone story following [docs/templates/story.md](docs/templates/story.md), bugs included. There are no epics anymore: #3 is the last one and is closed once its remaining stories are done.
+- Every issue gets exactly one type label (`enhancement`, `bug` or `documentation`) and at least one area label (`backend`, `frontend`, `crawler`, `api`, `ci`).
 
 ## After a merge
 Once a `feature/*` branch is merged into `main` (by the maintainer or by Claude), clean up without asking; this overrides the "ask before deleting" rule in the global instructions:
 - Delete the branch locally (`git branch -d`, never `-D`; if it refuses, stop and ask) and on the remote.
 - Remove the worktree the work was done in (`git worktree remove`, no `--force`, run from outside that worktree) and any scratch/temp directories created for the task.
-- Close the story issue and tick it in its epic's checklist. If every story of that epic is then closed and its Definition of done is verified, close the epic and tick its boxes too. Skip closing when the PR says the issue stays open (e.g. `Refs #N` with an open acceptance-criteria note).
+- Close the story issue. Skip closing when the PR says the issue stays open (e.g. `Refs #N` with an open acceptance-criteria note). For #3's remaining stories (#4, #7, #8), also tick them in #3's checklist, and close #3 once all of them are closed and its Definition of done is verified.
 - `gh issue close`/`gh issue edit`/`gh pr edit` fail in this repo with a Projects (classic) GraphQL error; use `gh api` (REST) instead, e.g. `PATCH repos/Tobischlick/tennis-stats/issues/<n>`.
 - Leave `renovate/*` branches alone; Renovate manages them.
 
 ## CI
-- `.github/workflows/backend-ci.yml` runs backend tests on every PR targeting `main`.
-- `.github/workflows/frontend-ci.yml` runs frontend lint, a stale API types check (`npm run gen:api` must not change `lib/api/schema.d.ts`), build and tests (once a `test` script exists) on every PR targeting `main`.
+- `.github/workflows/backend-ci.yml` runs backend tests on every PR targeting `main` and on every push to `main` (i.e. after each merge).
+- `.github/workflows/frontend-ci.yml` runs frontend lint, a stale API types check (`npm run gen:api` must not change `lib/api/schema.d.ts`), build and tests (once a `test` script exists) on every PR targeting `main` and on every push to `main`.
 - `main` is protected by the "Protect main" ruleset: no direct pushes, PRs need a code-owner review (see `CODEOWNERS`) and both checks (`test`, `check`) passing on an up-to-date branch. Only Renovate may merge its own PRs without a review.

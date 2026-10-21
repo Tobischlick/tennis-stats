@@ -1,7 +1,5 @@
 # Story: <title>
 
-**Epic:** #<parent epic issue number>
-
 ## Description
 As a <who>, I want <what>, so that <why>.
 

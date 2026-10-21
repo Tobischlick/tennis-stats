@@ -17,6 +17,8 @@ Endpoints:
   record with partners and set scores.
 - `GET /players/{id}/matches?limit=` — the player's most recent matches
   (up to 10) with opponents, partner, teams and set scores.
+- `GET /overview` — database totals (players, clubs, teams, meetings,
+  matches, sets, date range) and a few fun stats for the landing page.
 
 Every stats response includes a `hasEnoughData` flag. When a player has no
 crawled matches yet, the stat fields are `null` instead of zeroed out, so

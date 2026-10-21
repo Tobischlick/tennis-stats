@@ -1,4 +1,9 @@
+[![Java Version](https://img.shields.io/badge/Java-25-orange)](https://openjdk.org/projects/jdk/25)
+[![Backend CI](https://github.com/Tobischlick/tennis-stats/actions/workflows/backend-ci.yml/badge.svg?branch=main)](https://github.com/Tobischlick/tennis-stats/actions/workflows/backend-ci.yml)
+[![Frontend CI](https://github.com/Tobischlick/tennis-stats/actions/workflows/frontend-ci.yml/badge.svg?branch=main)](https://github.com/Tobischlick/tennis-stats/actions/workflows/frontend-ci.yml)
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/Tobischlick/tennis-stats)
+![GitHub](https://img.shields.io/github/license/Tobischlick/tennis-stats)
+![GitHub top language](https://img.shields.io/github/languages/top/Tobischlick/tennis-stats)
 
 # Tennis Stats
 

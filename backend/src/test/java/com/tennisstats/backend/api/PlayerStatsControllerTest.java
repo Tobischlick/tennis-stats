@@ -196,6 +196,30 @@ class PlayerStatsControllerTest implements PostgresTestcontainer {
     }
 
     @Test
+    void returnsTheHomeAndAwayRecordAddingUpToTheOverallRecord() throws Exception {
+        annaWinsAgainstBea(LocalDate.of(2026, 5, 3));
+        annaWinsAgainstBea(LocalDate.of(2026, 5, 10));
+        annaLosesAgainstBea(LocalDate.of(2026, 5, 17));
+
+        // Anna plays for the away team and loses.
+        Rubber awayLoss = singlesRubber(LocalDate.of(2026, 5, 24), bea, anna);
+        awayLoss.addSet(1, SetType.REGULAR, 6, 2);
+        awayLoss.addSet(2, SetType.REGULAR, 6, 1);
+        meetingRepository.saveAndFlush(awayLoss.getMeeting());
+
+        mockMvc.perform(get("/api/v1/players/{id}/stats", anna.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.record.wins").value(2))
+                .andExpect(jsonPath("$.record.losses").value(2))
+                .andExpect(jsonPath("$.homeAway.home.wins").value(2))
+                .andExpect(jsonPath("$.homeAway.home.losses").value(1))
+                .andExpect(jsonPath("$.homeAway.home.winPercentage").value(66.7))
+                .andExpect(jsonPath("$.homeAway.away.wins").value(0))
+                .andExpect(jsonPath("$.homeAway.away.losses").value(1))
+                .andExpect(jsonPath("$.homeAway.away.winPercentage").value(0.0));
+    }
+
+    @Test
     void reportsZeroTieBreakPercentageForAPlayerWhoNeverPlayedOne() throws Exception {
         annaWinsAgainstBea(LocalDate.of(2026, 5, 3));
 
@@ -219,7 +243,8 @@ class PlayerStatsControllerTest implements PostgresTestcontainer {
                 .andExpect(jsonPath("$.tieBreak").value(nullValue()))
                 .andExpect(jsonPath("$.streak").value(nullValue()))
                 .andExpect(jsonPath("$.decidingSet").value(nullValue()))
-                .andExpect(jsonPath("$.firstSet").value(nullValue()));
+                .andExpect(jsonPath("$.firstSet").value(nullValue()))
+                .andExpect(jsonPath("$.homeAway").value(nullValue()));
     }
 
     @Test

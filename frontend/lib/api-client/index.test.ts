@@ -85,6 +85,7 @@ test("getPlayerStats returns the body on 200", async () => {
     streak: null,
     decidingSet: null,
     firstSet: null,
+    homeAway: null,
   };
   respond(200, stats);
   await expect(getPlayerStats("p1")).resolves.toEqual(stats);

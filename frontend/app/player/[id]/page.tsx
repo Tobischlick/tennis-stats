@@ -9,13 +9,16 @@ import { FormDots } from "@/components/form-dots";
 import { HomeAwayCard } from "@/components/home-away-card";
 import { Initials } from "@/components/player-list";
 import { RecentMatches } from "@/components/recent-matches";
+import { SeasonTrend } from "@/components/season-trend";
 import { BigNumber, Meter, StatCard } from "@/components/stat-card";
 import { firstName, formatPercent, isSmallSample, matchCount, resultLabel, tieBreakVerdict } from "@/lib/format";
 import {
   getDoublesPartners,
+  getPlayerSeasons,
   getPlayerStats,
   getRecentMatches,
   type DoublesPartners,
+  type PlayerSeason,
   type PlayerStats,
   type RecentMatch,
 } from "@/lib/api-client";
@@ -28,10 +31,11 @@ export async function generateMetadata({ params }: PageProps<"/player/[id]">): P
 
 export default async function PlayerPage({ params }: PageProps<"/player/[id]">) {
   const { id } = await params;
-  const [stats, recentMatches, doublesPartners] = await Promise.all([
+  const [stats, recentMatches, doublesPartners, seasons] = await Promise.all([
     getPlayerStats(id),
     getRecentMatches(id),
     getDoublesPartners(id),
+    getPlayerSeasons(id),
   ]);
   if (!stats) notFound();
   const { player } = stats;
@@ -57,7 +61,12 @@ export default async function PlayerPage({ params }: PageProps<"/player/[id]">) 
       </header>
 
       {stats.hasEnoughData ? (
-        <Stats stats={stats} recentMatches={recentMatches ?? []} doublesPartners={doublesPartners} />
+        <Stats
+          stats={stats}
+          recentMatches={recentMatches ?? []}
+          doublesPartners={doublesPartners}
+          seasons={seasons ?? []}
+        />
       ) : (
         <NoData name={player.name} />
       )}
@@ -73,10 +82,12 @@ function Stats({
   stats,
   recentMatches,
   doublesPartners,
+  seasons,
 }: {
   stats: PlayerStats;
   recentMatches: RecentMatch[];
   doublesPartners: DoublesPartners | undefined;
+  seasons: PlayerSeason[];
 }) {
   const { record, tieBreak, streak, decidingSet, firstSet, homeAway } = stats;
   if (!record || !tieBreak || !streak || !decidingSet || !firstSet || !homeAway) {
@@ -169,6 +180,8 @@ function Stats({
             <Meter value={record.winPercentage} />
           </div>
         </StatCard>
+
+        {seasons.length > 0 && <SeasonTrend seasons={seasons} />}
 
         <StatCard label="Entscheidungssatz" className="md:col-span-2">
           {decidingSet.played > 0 ? (

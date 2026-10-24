@@ -2,6 +2,7 @@ import type {
   DoublesPartners,
   HeadToHead,
   Overview,
+  PlayerSeason,
   PlayerStats,
   PlayerSummary,
   RecentMatch,
@@ -140,6 +141,21 @@ export const doublesPartners: Record<string, DoublesPartners> = {
       },
     ],
   },
+};
+
+// Adds up to stats.anna: all of Anna's matches are from one season.
+export const seasons: Record<string, PlayerSeason[]> = {
+  anna: [
+    {
+      season: "Sommer 2026",
+      type: "SUMMER",
+      startsOn: "2026-04-01",
+      endsOn: "2026-09-30",
+      matchesPlayed: 3,
+      record: { wins: 2, losses: 1, winPercentage: 66.7 },
+      tieBreak: { tieBreaksPlayed: 4, tieBreaksWon: 3, tieBreakWinPercentage: 75 },
+    },
+  ],
 };
 
 export const headToHead: Record<string, HeadToHead> = {

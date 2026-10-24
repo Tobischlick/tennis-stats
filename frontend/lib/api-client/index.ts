@@ -2,7 +2,15 @@ import "server-only";
 import { cache } from "react";
 import createClient from "openapi-fetch";
 import type { paths } from "@/lib/api/schema";
-import type { DoublesPartners, HeadToHead, Overview, PlayerStats, PlayerSummary, RecentMatch } from "./types";
+import type {
+  DoublesPartners,
+  HeadToHead,
+  Overview,
+  PlayerSeason,
+  PlayerStats,
+  PlayerSummary,
+  RecentMatch,
+} from "./types";
 
 export type * from "./types";
 
@@ -53,6 +61,14 @@ export async function getRecentMatches(id: string): Promise<RecentMatch[] | unde
     client.GET("/players/{id}/matches", { params: { path: { id } } }),
   );
   return orNotFound("getRecentMatches", result);
+}
+
+/** Oldest season first; `undefined` when there is no player with this id. */
+export async function getPlayerSeasons(id: string): Promise<PlayerSeason[] | undefined> {
+  const result = await send("getPlayerSeasons", () =>
+    client.GET("/players/{id}/seasons", { params: { path: { id } } }),
+  );
+  return orNotFound("getPlayerSeasons", result);
 }
 
 /** One page of matches, newest first, plus the total across all pages; `undefined` when there is no player with this id. */

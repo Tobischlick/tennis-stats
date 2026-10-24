@@ -1,5 +1,5 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import { doublesPartners, headToHead, matches, overview, players, stats, UNREACHABLE_PLAYER_ID } from "./fixtures";
+import { doublesPartners, headToHead, matches, overview, players, seasons, stats, UNREACHABLE_PLAYER_ID } from "./fixtures";
 
 export const MOCK_API_PORT = 3101;
 
@@ -29,6 +29,7 @@ function handle(req: IncomingMessage, res: ServerResponse) {
       const limit = Number(url.searchParams.get("limit") ?? 10);
       return json(res, 200, all.slice(offset, offset + limit), { "X-Total-Count": String(all.length) });
     }
+    if (sub === "seasons") return json(res, 200, seasons[id] ?? []);
     if (sub === "doubles-partners") {
       const { playerId, player } = stats[id];
       const none = { playerId, player, matchesPlayed: 0, hasEnoughData: false, partners: [] };

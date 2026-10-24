@@ -545,6 +545,66 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /players/{id}/seasons:
+    get:
+      operationId: getPlayerSeasons
+      tags: [players]
+      summary: Get a player's win/loss and tie-break record per season, oldest first
+      description: >
+        Journey: checking your own progress. Splits the player's record into
+        BTV seasons, derived from the meeting date (`playedOn`):
+
+        - Summer ("Sommer 2026"): April 1 to September 30 of that year.
+        - Winter ("Winter 2025/26"): October 1 to March 31 of the next year,
+          so a meeting in January to March belongs to the winter that
+          started the previous October.
+
+        Wins, losses and tie-breaks are counted by the same rules as
+        `record` and `tieBreak` on /players/{id}/stats (same rubbers, same
+        tie-break definition), so the seasons add up to the overall numbers.
+        Only seasons with at least one match or tie-break are listed, oldest
+        first.
+      parameters:
+        - $ref: "#/components/parameters/PlayerId"
+      responses:
+        "200":
+          description: >
+            The player's seasons, oldest first. Empty array if the player has
+            no crawled matches yet.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PlayerSeason"
+              examples:
+                twoSeasons:
+                  summary: A winter and the following summer
+                  value:
+                    - season: "Winter 2025/26"
+                      type: WINTER
+                      startsOn: "2025-10-01"
+                      endsOn: "2026-03-31"
+                      matchesPlayed: 3
+                      record: { wins: 1, losses: 2, winPercentage: 33.3 }
+                      tieBreak: { tieBreaksPlayed: 1, tieBreaksWon: 0, tieBreakWinPercentage: 0 }
+                    - season: "Sommer 2026"
+                      type: SUMMER
+                      startsOn: "2026-04-01"
+                      endsOn: "2026-09-30"
+                      matchesPlayed: 8
+                      record: { wins: 6, losses: 2, winPercentage: 75 }
+                      tieBreak: { tieBreaksPlayed: 4, tieBreaksWon: 3, tieBreakWinPercentage: 75 }
+                noMatches:
+                  summary: Player exists but has no crawled matches yet
+                  value: []
+        "404":
+          description: No player with this id.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   parameters:
     PlayerId:
@@ -1007,6 +1067,44 @@ components:
         matchTieBreak:
           type: boolean
           description: True when this "set" was a 10-point match tie-break.
+
+    PlayerSeason:
+      type: object
+      description: >
+        The player's record within one BTV season, see GET
+        /players/{id}/seasons for the season boundaries.
+      required: [season, type, startsOn, endsOn, matchesPlayed, record, tieBreak]
+      properties:
+        season:
+          type: string
+          description: >
+            Display name: "Sommer <year>" for a summer, "Winter <start
+            year>/<two-digit end year>" for a winter.
+          example: "Winter 2025/26"
+        type:
+          type: string
+          enum: [SUMMER, WINTER]
+        startsOn:
+          type: string
+          format: date
+          description: First day of the season (April 1 or October 1).
+          example: "2025-10-01"
+        endsOn:
+          type: string
+          format: date
+          description: Last day of the season (September 30 or March 31).
+          example: "2026-03-31"
+        matchesPlayed:
+          type: integer
+          minimum: 0
+          description: >
+            Rubbers with a winner in this season (wins + losses). 0 only for
+            a season whose sole rubbers didn't settle a winner but had a
+            tie-break.
+        record:
+          $ref: "#/components/schemas/WinLossRecord"
+        tieBreak:
+          $ref: "#/components/schemas/TieBreakStats"
 
     ErrorResponse:
       type: object

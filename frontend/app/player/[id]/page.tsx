@@ -5,6 +5,7 @@ import { ArrowLeft, ChevronRight, Sprout } from "lucide-react";
 import { ComparePicker } from "@/components/compare-picker";
 import { FirstSetCard } from "@/components/first-set-card";
 import { FormDots } from "@/components/form-dots";
+import { HomeAwayCard } from "@/components/home-away-card";
 import { Initials } from "@/components/player-list";
 import { RecentMatches } from "@/components/recent-matches";
 import { BigNumber, Meter, StatCard } from "@/components/stat-card";
@@ -53,8 +54,10 @@ export default async function PlayerPage({ params }: PageProps<"/player/[id]">) 
 }
 
 function Stats({ stats, recentMatches }: { stats: PlayerStats; recentMatches: RecentMatch[] }) {
-  const { record, tieBreak, streak, decidingSet, firstSet } = stats;
-  if (!record || !tieBreak || !streak || !decidingSet || !firstSet) return <NoData name={stats.player.name} />;
+  const { record, tieBreak, streak, decidingSet, firstSet, homeAway } = stats;
+  if (!record || !tieBreak || !streak || !decidingSet || !firstSet || !homeAway) {
+    return <NoData name={stats.player.name} />;
+  }
   const streakText = `${streak.current.count} ${resultLabel(streak.current.result, streak.current.count)}`;
 
   return (
@@ -170,6 +173,8 @@ function Stats({ stats, recentMatches }: { stats: PlayerStats; recentMatches: Re
         </StatCard>
 
         <FirstSetCard firstSet={firstSet} />
+
+        <HomeAwayCard homeAway={homeAway} />
 
         {recentMatches.length > 0 && (
           <StatCard label="Letzte Matches" className="md:col-span-2">

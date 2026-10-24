@@ -3,13 +3,21 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ChevronRight, Sprout } from "lucide-react";
 import { ComparePicker } from "@/components/compare-picker";
+import { DoublesPartnersCard } from "@/components/doubles-partners";
 import { FirstSetCard } from "@/components/first-set-card";
 import { FormDots } from "@/components/form-dots";
 import { Initials } from "@/components/player-list";
 import { RecentMatches } from "@/components/recent-matches";
 import { BigNumber, Meter, StatCard } from "@/components/stat-card";
 import { firstName, formatPercent, isSmallSample, matchCount, resultLabel, tieBreakVerdict } from "@/lib/format";
-import { getPlayerStats, getRecentMatches, type PlayerStats, type RecentMatch } from "@/lib/api-client";
+import {
+  getDoublesPartners,
+  getPlayerStats,
+  getRecentMatches,
+  type DoublesPartners,
+  type PlayerStats,
+  type RecentMatch,
+} from "@/lib/api-client";
 
 export async function generateMetadata({ params }: PageProps<"/player/[id]">): Promise<Metadata> {
   // A failed fetch is left to the page render, which shows the error boundary; the tab still gets a title.
@@ -19,7 +27,11 @@ export async function generateMetadata({ params }: PageProps<"/player/[id]">): P
 
 export default async function PlayerPage({ params }: PageProps<"/player/[id]">) {
   const { id } = await params;
-  const [stats, recentMatches] = await Promise.all([getPlayerStats(id), getRecentMatches(id)]);
+  const [stats, recentMatches, doublesPartners] = await Promise.all([
+    getPlayerStats(id),
+    getRecentMatches(id),
+    getDoublesPartners(id),
+  ]);
   if (!stats) notFound();
   const { player } = stats;
 
@@ -43,7 +55,11 @@ export default async function PlayerPage({ params }: PageProps<"/player/[id]">) 
         </div>
       </header>
 
-      {stats.hasEnoughData ? <Stats stats={stats} recentMatches={recentMatches ?? []} /> : <NoData name={player.name} />}
+      {stats.hasEnoughData ? (
+        <Stats stats={stats} recentMatches={recentMatches ?? []} doublesPartners={doublesPartners} />
+      ) : (
+        <NoData name={player.name} />
+      )}
 
       <div className="mt-4 md:mt-5">
         <ComparePicker playerId={id} playerName={player.name} />
@@ -52,7 +68,15 @@ export default async function PlayerPage({ params }: PageProps<"/player/[id]">) 
   );
 }
 
-function Stats({ stats, recentMatches }: { stats: PlayerStats; recentMatches: RecentMatch[] }) {
+function Stats({
+  stats,
+  recentMatches,
+  doublesPartners,
+}: {
+  stats: PlayerStats;
+  recentMatches: RecentMatch[];
+  doublesPartners: DoublesPartners | undefined;
+}) {
   const { record, tieBreak, streak, decidingSet, firstSet } = stats;
   if (!record || !tieBreak || !streak || !decidingSet || !firstSet) return <NoData name={stats.player.name} />;
   const streakText = `${streak.current.count} ${resultLabel(streak.current.result, streak.current.count)}`;
@@ -170,6 +194,8 @@ function Stats({ stats, recentMatches }: { stats: PlayerStats; recentMatches: Re
         </StatCard>
 
         <FirstSetCard firstSet={firstSet} />
+
+        {doublesPartners && <DoublesPartnersCard doublesPartners={doublesPartners} />}
 
         {recentMatches.length > 0 && (
           <StatCard label="Letzte Matches" className="md:col-span-2">

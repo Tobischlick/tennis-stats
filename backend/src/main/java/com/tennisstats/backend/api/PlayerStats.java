@@ -1,6 +1,7 @@
 package com.tennisstats.backend.api;
 
 import com.tennisstats.backend.stats.DecidingSetStats;
+import com.tennisstats.backend.stats.FirstSetStats;
 import com.tennisstats.backend.stats.StreakStats;
 import com.tennisstats.backend.stats.TieBreakStats;
 import com.tennisstats.backend.stats.WinLossRecord;
@@ -14,7 +15,8 @@ public record PlayerStats(
         WinLoss record,
         TieBreak tieBreak,
         Streak streak,
-        DecidingSet decidingSet) {
+        DecidingSet decidingSet,
+        FirstSet firstSet) {
 
     public static PlayerStats from(
             Long playerId,
@@ -22,11 +24,12 @@ public record PlayerStats(
             WinLossRecord winLoss,
             TieBreakStats tieBreak,
             StreakStats streak,
-            DecidingSetStats decidingSet) {
+            DecidingSetStats decidingSet,
+            FirstSetStats firstSet) {
         int matchesPlayed = winLoss.wins() + winLoss.losses();
         String id = String.valueOf(playerId);
         if (matchesPlayed == 0) {
-            return new PlayerStats(id, player, 0, false, null, null, null, null);
+            return new PlayerStats(id, player, 0, false, null, null, null, null, null);
         }
         return new PlayerStats(
                 id,
@@ -36,6 +39,7 @@ public record PlayerStats(
                 WinLoss.from(winLoss),
                 TieBreak.from(tieBreak),
                 Streak.from(streak),
-                DecidingSet.from(decidingSet));
+                DecidingSet.from(decidingSet),
+                FirstSet.from(firstSet));
     }
 }

@@ -82,6 +82,14 @@ export const stats: Record<string, PlayerStats> = {
     tieBreak: { tieBreaksPlayed: 4, tieBreaksWon: 3, tieBreakWinPercentage: 75 },
     streak: { current: { result: "WIN", count: 2 }, recentResults: ["WIN", "WIN", "LOSS"] },
     decidingSet: { played: 1, won: 1, winPercentage: 100 },
+    firstSet: {
+      lostFirstSet: 2,
+      comebacks: 1,
+      comebackPercentage: 50,
+      wonFirstSet: 1,
+      blownLeads: 0,
+      blownLeadPercentage: 0,
+    },
   },
   berta: {
     playerId: berta.id,
@@ -92,6 +100,7 @@ export const stats: Record<string, PlayerStats> = {
     tieBreak: null,
     streak: null,
     decidingSet: null,
+    firstSet: null,
   },
 };
 

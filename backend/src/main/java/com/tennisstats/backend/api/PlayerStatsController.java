@@ -3,6 +3,7 @@ package com.tennisstats.backend.api;
 import com.tennisstats.backend.domain.Player;
 import com.tennisstats.backend.domain.repository.PlayerRepository;
 import com.tennisstats.backend.stats.DecidingSetService;
+import com.tennisstats.backend.stats.FirstSetService;
 import com.tennisstats.backend.stats.HeadToHeadRecord;
 import com.tennisstats.backend.stats.HeadToHeadService;
 import com.tennisstats.backend.stats.PlayerClubService;
@@ -27,6 +28,7 @@ public class PlayerStatsController {
     private final StreakService streakService;
     private final HeadToHeadService headToHeadService;
     private final DecidingSetService decidingSetService;
+    private final FirstSetService firstSetService;
     private final PlayerClubService playerClubService;
 
     public PlayerStatsController(
@@ -36,6 +38,7 @@ public class PlayerStatsController {
             StreakService streakService,
             HeadToHeadService headToHeadService,
             DecidingSetService decidingSetService,
+            FirstSetService firstSetService,
             PlayerClubService playerClubService) {
         this.playerRepository = playerRepository;
         this.winLossService = winLossService;
@@ -43,6 +46,7 @@ public class PlayerStatsController {
         this.streakService = streakService;
         this.headToHeadService = headToHeadService;
         this.decidingSetService = decidingSetService;
+        this.firstSetService = firstSetService;
         this.playerClubService = playerClubService;
     }
 
@@ -58,7 +62,8 @@ public class PlayerStatsController {
                 winLossService.getWinLossRecord(playerId),
                 tieBreakService.getTieBreakStats(playerId),
                 streakService.getStreakStats(playerId),
-                decidingSetService.getDecidingSetStats(playerId)));
+                decidingSetService.getDecidingSetStats(playerId),
+                firstSetService.getFirstSetStats(playerId)));
     }
 
     @GetMapping("/{id}/head-to-head/{opponentId}")

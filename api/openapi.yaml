@@ -142,7 +142,7 @@ paths:
     get:
       operationId: getPlayerStats
       tags: [players]
-      summary: Get a player's win/loss, tie-break, streak, deciding-set and first-set stats
+      summary: Get a player's win/loss, tie-break, streak, deciding-set, first-set and home/away stats
       description: >
         Journeys: scouting an opponent, checking your own progress, casual
         browsing. When the player exists but has no crawled matches yet,
@@ -192,6 +192,15 @@ paths:
                       wonFirstSet: 27
                       blownLeads: 2
                       blownLeadPercentage: 7.4
+                    homeAway:
+                      home:
+                        wins: 16
+                        losses: 6
+                        winPercentage: 72.7
+                      away:
+                        wins: 11
+                        losses: 9
+                        winPercentage: 55.0
                 notEnoughData:
                   summary: Player exists but has no crawled matches yet
                   value:
@@ -207,6 +216,7 @@ paths:
                     streak: null
                     decidingSet: null
                     firstSet: null
+                    homeAway: null
         "404":
           description: No player with this id.
           content:
@@ -350,6 +360,79 @@ paths:
                       meetings: []
         "404":
           description: One or both player ids don't exist.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /players/{id}/doubles-partners:
+    get:
+      operationId: getDoublesPartners
+      tags: [players]
+      summary: Get a player's record with each doubles partner
+      description: >
+        Journey: checking your own progress, i.e. which doubles pairings work
+        best. A partner is the other player on the same side of a doubles
+        rubber. Wins and losses are counted like the player's overall
+        `record` on /players/{id}/stats: a retirement counts as a win for the
+        other side, and a rubber whose sets don't settle a winner counts
+        towards neither, so a partner with only such rubbers is left out.
+        Partners are sorted by `matchesPlayed` (most first), then by
+        `record.winPercentage` (highest first). When the player has no
+        settled doubles rubber, `hasEnoughData` is `false` and `partners` is
+        empty.
+      parameters:
+        - $ref: "#/components/parameters/PlayerId"
+      responses:
+        "200":
+          description: Record with each doubles partner, or a "not enough data yet" response.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DoublesPartners"
+              examples:
+                withData:
+                  summary: Player with two doubles partners
+                  value:
+                    playerId: "a1b2c3"
+                    player:
+                      id: "a1b2c3"
+                      name: "Anna Schmidt"
+                      club: "TC Blau-Weiss Karlsruhe"
+                    matchesPlayed: 9
+                    hasEnoughData: true
+                    partners:
+                      - partner:
+                          id: "m4n5o6"
+                          name: "Clara Wolf"
+                          club: "TC Blau-Weiss Karlsruhe"
+                        matchesPlayed: 7
+                        record:
+                          wins: 5
+                          losses: 2
+                          winPercentage: 71.4
+                      - partner:
+                          id: "p7q8r9"
+                          name: "Mia Keller"
+                          club: "TC Blau-Weiss Karlsruhe"
+                        matchesPlayed: 2
+                        record:
+                          wins: 0
+                          losses: 2
+                          winPercentage: 0
+                notEnoughData:
+                  summary: Player has no doubles yet
+                  value:
+                    playerId: "g7h8i9"
+                    player:
+                      id: "g7h8i9"
+                      name: "Clara Weber"
+                      club: null
+                    matchesPlayed: 0
+                    hasEnoughData: false
+                    partners: []
+        "404":
+          description: No player with this id.
           content:
             application/json:
               schema:
@@ -537,7 +620,7 @@ components:
       type: object
       description: >
         Lightweight player identity: search results, and the header of the
-        stats and head-to-head responses.
+        stats, head-to-head and doubles-partners responses.
       required: [id, name]
       properties:
         id:
@@ -663,6 +746,24 @@ components:
           maximum: 100
           description: blownLeads / wonFirstSet * 100, rounded to one decimal; 0 when wonFirstSet is 0.
 
+    HomeAwayStats:
+      type: object
+      description: >
+        The player's win/loss record split by whether their team was the
+        home or the away team of the meeting. Counts the same rubbers
+        (singles and doubles) as `PlayerStats.record`, so home and away add
+        up to it.
+      required: [home, away]
+      properties:
+        home:
+          description: Rubbers where the player's team was the home team.
+          allOf:
+            - $ref: "#/components/schemas/WinLossRecord"
+        away:
+          description: Rubbers where the player's team was the away team.
+          allOf:
+            - $ref: "#/components/schemas/WinLossRecord"
+
     MatchResult:
       type: string
       enum: [WIN, LOSS]
@@ -691,12 +792,12 @@ components:
     PlayerStats:
       type: object
       description: >
-        Win/loss, tie-break, streak, deciding-set and first-set stats for a
-        player. When `hasEnoughData` is false, the player exists but has no
-        crawled matches yet — `record`, `tieBreak`, `streak`, `decidingSet`
-        and `firstSet` are null rather than being populated with zeroes, so the frontend can
+        Win/loss, tie-break, streak, deciding-set, first-set and home/away
+        stats for a player. When `hasEnoughData` is false, the player exists
+        but has no crawled matches yet — `record`, `tieBreak`, `streak`,
+        `decidingSet`, `firstSet` and `homeAway` are null rather than being populated with zeroes, so the frontend can
         distinguish "no data yet" from "zero losses".
-      required: [playerId, player, matchesPlayed, hasEnoughData, record, tieBreak, streak, decidingSet, firstSet]
+      required: [playerId, player, matchesPlayed, hasEnoughData, record, tieBreak, streak, decidingSet, firstSet, homeAway]
       properties:
         playerId:
           type: string
@@ -735,6 +836,11 @@ components:
           nullable: true
           allOf:
             - $ref: "#/components/schemas/FirstSetStats"
+        homeAway:
+          type: object
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/HomeAwayStats"
 
     HeadToHead:
       type: object
@@ -848,6 +954,49 @@ components:
           description: Sets in the order they were played.
           items:
             $ref: "#/components/schemas/SetScore"
+
+    DoublesPartners:
+      type: object
+      description: >
+        A player's record with each doubles partner. When `hasEnoughData` is
+        false, the player has no settled doubles rubber yet: `matchesPlayed`
+        is 0 and `partners` is empty.
+      required: [playerId, player, matchesPlayed, hasEnoughData, partners]
+      properties:
+        playerId:
+          type: string
+        player:
+          description: Name and club of `playerId`, present even when `hasEnoughData` is false.
+          allOf:
+            - $ref: "#/components/schemas/PlayerSummary"
+        matchesPlayed:
+          type: integer
+          minimum: 0
+          description: Settled doubles rubbers across all partners.
+        hasEnoughData:
+          type: boolean
+          description: False when matchesPlayed is 0.
+        partners:
+          type: array
+          description: Sorted by `matchesPlayed` (most first), then `record.winPercentage` (highest first).
+          items:
+            $ref: "#/components/schemas/DoublesPartner"
+
+    DoublesPartner:
+      type: object
+      description: The player's record together with one doubles partner.
+      required: [partner, matchesPlayed, record]
+      properties:
+        partner:
+          $ref: "#/components/schemas/PlayerSummary"
+        matchesPlayed:
+          type: integer
+          minimum: 1
+          description: Settled doubles rubbers played together, i.e. wins + losses.
+        record:
+          description: Wins/losses of the pair.
+          allOf:
+            - $ref: "#/components/schemas/WinLossRecord"
 
     RecentMatch:
       type: object

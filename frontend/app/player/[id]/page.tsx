@@ -3,17 +3,21 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ChevronRight, Sprout } from "lucide-react";
 import { ComparePicker } from "@/components/compare-picker";
+import { DoublesPartnersCard } from "@/components/doubles-partners";
 import { FirstSetCard } from "@/components/first-set-card";
 import { FormDots } from "@/components/form-dots";
+import { HomeAwayCard } from "@/components/home-away-card";
 import { Initials } from "@/components/player-list";
 import { RecentMatches } from "@/components/recent-matches";
 import { SeasonTrend } from "@/components/season-trend";
 import { BigNumber, Meter, StatCard } from "@/components/stat-card";
 import { firstName, formatPercent, isSmallSample, matchCount, resultLabel, tieBreakVerdict } from "@/lib/format";
 import {
+  getDoublesPartners,
   getPlayerSeasons,
   getPlayerStats,
   getRecentMatches,
+  type DoublesPartners,
   type PlayerSeason,
   type PlayerStats,
   type RecentMatch,
@@ -27,9 +31,10 @@ export async function generateMetadata({ params }: PageProps<"/player/[id]">): P
 
 export default async function PlayerPage({ params }: PageProps<"/player/[id]">) {
   const { id } = await params;
-  const [stats, recentMatches, seasons] = await Promise.all([
+  const [stats, recentMatches, doublesPartners, seasons] = await Promise.all([
     getPlayerStats(id),
     getRecentMatches(id),
+    getDoublesPartners(id),
     getPlayerSeasons(id),
   ]);
   if (!stats) notFound();
@@ -56,7 +61,12 @@ export default async function PlayerPage({ params }: PageProps<"/player/[id]">) 
       </header>
 
       {stats.hasEnoughData ? (
-        <Stats stats={stats} recentMatches={recentMatches ?? []} seasons={seasons ?? []} />
+        <Stats
+          stats={stats}
+          recentMatches={recentMatches ?? []}
+          doublesPartners={doublesPartners}
+          seasons={seasons ?? []}
+        />
       ) : (
         <NoData name={player.name} />
       )}
@@ -71,14 +81,18 @@ export default async function PlayerPage({ params }: PageProps<"/player/[id]">) 
 function Stats({
   stats,
   recentMatches,
+  doublesPartners,
   seasons,
 }: {
   stats: PlayerStats;
   recentMatches: RecentMatch[];
+  doublesPartners: DoublesPartners | undefined;
   seasons: PlayerSeason[];
 }) {
-  const { record, tieBreak, streak, decidingSet, firstSet } = stats;
-  if (!record || !tieBreak || !streak || !decidingSet || !firstSet) return <NoData name={stats.player.name} />;
+  const { record, tieBreak, streak, decidingSet, firstSet, homeAway } = stats;
+  if (!record || !tieBreak || !streak || !decidingSet || !firstSet || !homeAway) {
+    return <NoData name={stats.player.name} />;
+  }
   const streakText = `${streak.current.count} ${resultLabel(streak.current.result, streak.current.count)}`;
 
   return (
@@ -196,6 +210,10 @@ function Stats({
         </StatCard>
 
         <FirstSetCard firstSet={firstSet} />
+
+        <HomeAwayCard homeAway={homeAway} />
+
+        {doublesPartners && <DoublesPartnersCard doublesPartners={doublesPartners} />}
 
         {recentMatches.length > 0 && (
           <StatCard label="Letzte Matches" className="md:col-span-2">

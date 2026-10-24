@@ -13,3 +13,6 @@ export type DoublesMeeting = Schemas["DoublesMeeting"];
 export type WinLossRecord = Schemas["WinLossRecord"];
 export type FirstSetStats = Schemas["FirstSetStats"];
 export type PlayerSeason = Schemas["PlayerSeason"];
+export type DoublesPartners = Schemas["DoublesPartners"];
+export type DoublesPartner = Schemas["DoublesPartner"];
+export type HomeAwayStats = Schemas["HomeAwayStats"];

@@ -2,7 +2,15 @@ import "server-only";
 import { cache } from "react";
 import createClient from "openapi-fetch";
 import type { paths } from "@/lib/api/schema";
-import type { HeadToHead, Overview, PlayerSeason, PlayerStats, PlayerSummary, RecentMatch } from "./types";
+import type {
+  DoublesPartners,
+  HeadToHead,
+  Overview,
+  PlayerSeason,
+  PlayerStats,
+  PlayerSummary,
+  RecentMatch,
+} from "./types";
 
 export type * from "./types";
 
@@ -85,6 +93,14 @@ export async function getHeadToHead(id: string, opponentId: string): Promise<Hea
     client.GET("/players/{id}/head-to-head/{opponentId}", { params: { path: { id, opponentId } } }),
   );
   return orNotFound("getHeadToHead", result);
+}
+
+/** Most matches together first; `undefined` when there is no player with this id. */
+export async function getDoublesPartners(id: string): Promise<DoublesPartners | undefined> {
+  const result = await send("getDoublesPartners", () =>
+    client.GET("/players/{id}/doubles-partners", { params: { path: { id } } }),
+  );
+  return orNotFound("getDoublesPartners", result);
 }
 
 export async function getOverview(): Promise<Overview> {

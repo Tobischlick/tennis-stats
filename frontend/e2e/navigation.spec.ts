@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { anna, berta } from "./fixtures";
+import { anna, berta, clara } from "./fixtures";
 
 test("search finds a player and opens their stats", async ({ page }) => {
   await page.goto("/");
@@ -26,7 +26,21 @@ test("player page shows the stats", async ({ page }) => {
   await expect(seasons.getByText("3 Matches · 2:1 · 3 von 4 Tie-Breaks gewonnen")).toBeVisible();
   await expect(seasons.getByText("kleine Stichprobe")).toBeVisible();
   await expect(page.getByText("Erst eine Saison mit Matches erfasst – der Verlauf erscheint ab der zweiten Saison.")).toBeVisible();
+  await expect(page.getByText("1 Sieg · 1 Niederlage")).toBeVisible();
   await expect(page.getByText(`Sieg gegen ${berta.name}`)).toHaveCount(2);
+});
+
+test("doubles partners link to the partner's page", async ({ page }) => {
+  await page.goto(`/player/${anna.id}`);
+  const section = page.locator("section").filter({ has: page.getByRole("heading", { name: "Doppelpartner" }) });
+  await expect(section.getByRole("listitem")).toHaveCount(2);
+  const best = section.getByRole("link", { name: /Beste Paarung/ });
+  await expect(best).toContainText(clara.name);
+  await expect(best).toContainText("5:1");
+  await best.click();
+
+  await expect(page).toHaveURL(`/player/${clara.id}`);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(clara.name);
 });
 
 test("all-matches page lists every match", async ({ page }) => {

@@ -53,7 +53,7 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get a player's win/loss, tie-break, streak, deciding-set and first-set stats
+         * Get a player's win/loss, tie-break, streak, deciding-set, first-set and home/away stats
          * @description Journeys: scouting an opponent, checking your own progress, casual browsing. When the player exists but has no crawled matches yet, `hasEnoughData` is `false` and the stat blocks are omitted rather than showing zeroes — see PlayerStats schema.
          */
         get: operations["getPlayerStats"];
@@ -77,6 +77,26 @@ export interface paths {
          * @description Journey 3 (head-to-head lookup). A dedicated endpoint rather than a query param on /players/{id}/stats, since it's keyed on a pair of players and returns its own "not enough data yet" shape when the two have never played each other (as opposed to one player having no matches at all). The top-level record covers singles only; doubles in which the two stood on opposite sides are reported separately in `doubles`, never mixed into the singles record.
          */
         get: operations["getHeadToHead"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/players/{id}/doubles-partners": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a player's record with each doubles partner
+         * @description Journey: checking your own progress, i.e. which doubles pairings work best. A partner is the other player on the same side of a doubles rubber. Wins and losses are counted like the player's overall `record` on /players/{id}/stats: a retirement counts as a win for the other side, and a rubber whose sets don't settle a winner counts towards neither, so a partner with only such rubbers is left out. Partners are sorted by `matchesPlayed` (most first), then by `record.winPercentage` (highest first). When the player has no settled doubles rubber, `hasEnoughData` is `false` and `partners` is empty.
+         */
+        get: operations["getDoublesPartners"];
         put?: never;
         post?: never;
         delete?: never;
@@ -134,7 +154,7 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        /** @description Lightweight player identity: search results, and the header of the stats and head-to-head responses. */
+        /** @description Lightweight player identity: search results, and the header of the stats, head-to-head and doubles-partners responses. */
         PlayerSummary: {
             /** @description Stable player id, used in stats/head-to-head lookups. */
             id: string;
@@ -195,6 +215,13 @@ export interface components {
              */
             blownLeadPercentage: number;
         };
+        /** @description The player's win/loss record split by whether their team was the home or the away team of the meeting. Counts the same rubbers (singles and doubles) as `PlayerStats.record`, so home and away add up to it. */
+        HomeAwayStats: {
+            /** @description Rubbers where the player's team was the home team. */
+            home: components["schemas"]["WinLossRecord"];
+            /** @description Rubbers where the player's team was the away team. */
+            away: components["schemas"]["WinLossRecord"];
+        };
         /** @enum {string} */
         MatchResult: "WIN" | "LOSS";
         Streak: {
@@ -206,7 +233,7 @@ export interface components {
             /** @description Most recent matches first, newest to oldest. */
             recentResults: components["schemas"]["MatchResult"][];
         };
-        /** @description Win/loss, tie-break, streak, deciding-set and first-set stats for a player. When `hasEnoughData` is false, the player exists but has no crawled matches yet — `record`, `tieBreak`, `streak`, `decidingSet` and `firstSet` are null rather than being populated with zeroes, so the frontend can distinguish "no data yet" from "zero losses". */
+        /** @description Win/loss, tie-break, streak, deciding-set, first-set and home/away stats for a player. When `hasEnoughData` is false, the player exists but has no crawled matches yet — `record`, `tieBreak`, `streak`, `decidingSet`, `firstSet` and `homeAway` are null rather than being populated with zeroes, so the frontend can distinguish "no data yet" from "zero losses". */
         PlayerStats: {
             playerId: string;
             /** @description Name and club of `playerId`, present even when `hasEnoughData` is false. */
@@ -219,6 +246,7 @@ export interface components {
             streak: components["schemas"]["Streak"] | null;
             decidingSet: components["schemas"]["DecidingSetStats"] | null;
             firstSet: components["schemas"]["FirstSetStats"] | null;
+            homeAway: components["schemas"]["HomeAwayStats"] | null;
         };
         /** @description Head-to-head record between two players. The top-level `matchesPlayed`, `hasEnoughData`, `record` and `recentResults` cover singles rubbers only: `hasEnoughData` is false when the two players have never played each other in singles yet, in which case `record` is null and `recentResults` is empty. Doubles in which the two stood on opposite sides are a separate record in `doubles`, which can have meetings even when there is no singles meeting. Doubles where the two played together as partners are not counted anywhere. */
         HeadToHead: {
@@ -267,6 +295,26 @@ export interface components {
             opponentTeam: string;
             /** @description Sets in the order they were played. */
             sets: components["schemas"]["SetScore"][];
+        };
+        /** @description A player's record with each doubles partner. When `hasEnoughData` is false, the player has no settled doubles rubber yet: `matchesPlayed` is 0 and `partners` is empty. */
+        DoublesPartners: {
+            playerId: string;
+            /** @description Name and club of `playerId`, present even when `hasEnoughData` is false. */
+            player: components["schemas"]["PlayerSummary"];
+            /** @description Settled doubles rubbers across all partners. */
+            matchesPlayed: number;
+            /** @description False when matchesPlayed is 0. */
+            hasEnoughData: boolean;
+            /** @description Sorted by `matchesPlayed` (most first), then `record.winPercentage` (highest first). */
+            partners: components["schemas"]["DoublesPartner"][];
+        };
+        /** @description The player's record together with one doubles partner. */
+        DoublesPartner: {
+            partner: components["schemas"]["PlayerSummary"];
+            /** @description Settled doubles rubbers played together, i.e. wins + losses. */
+            matchesPlayed: number;
+            /** @description Wins/losses of the pair. */
+            record: components["schemas"]["WinLossRecord"];
         };
         /** @description One singles or doubles rubber, from the requested player's perspective (result, teams and set scores are flipped for a player who played on the away side). */
         RecentMatch: {
@@ -536,6 +584,38 @@ export interface operations {
                 };
             };
             /** @description One or both player ids don't exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    getDoublesPartners: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Id of the player. */
+                id: components["parameters"]["PlayerId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Record with each doubles partner, or a "not enough data yet" response. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DoublesPartners"];
+                };
+            };
+            /** @description No player with this id. */
             404: {
                 headers: {
                     [name: string]: unknown;

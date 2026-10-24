@@ -37,7 +37,7 @@ graph TD
 | Package | Responsibility |
 |---|---|
 | `api` | REST controllers and request/response DTOs — the only package the frontend's contract touches. Exposes an OpenAPI spec so the frontend can generate a typed client (needed since Java and TS don't share types — see [ADR-0001](../09_architecture_decisions/adr-0001-technology-stack.md)). |
-| `stats` | Turns raw match/set rows into the derived numbers the vision calls for (win/loss, tie-break rate, streaks, deciding-set record, first-set comebacks and blown leads, head-to-head, database overview). Kept separate from `api` so stat logic is testable without HTTP. |
+| `stats` | Turns raw match/set rows into the derived numbers the vision calls for (win/loss, tie-break rate, streaks, deciding-set record, first-set comebacks and blown leads, home vs. away record, head-to-head, database overview). Kept separate from `api` so stat logic is testable without HTTP. |
 | `domain` | JPA entities (`Player`, `Team`, `Match`, `Set`, ...) and Spring Data repositories. The one place that knows the DB schema. |
 | `crawler` | JSoup-based fetch + parse of nuLiga's group/meeting pages, started by a one-shot runner in crawler mode (started locally, see [ADR-0002](../09_architecture_decisions/adr-0002-crawler-execution.md) and [ADR-0003](../09_architecture_decisions/adr-0003-local-only.md)), writing through `domain`'s repositories. The only package that talks to nuLiga. |
 

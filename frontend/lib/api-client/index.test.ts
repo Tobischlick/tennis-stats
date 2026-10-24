@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import type { Overview, PlayerStats, PlayerSummary } from "./types";
+import type { Overview, PlayerSeason, PlayerStats, PlayerSummary } from "./types";
 
 // openapi-fetch captures globalThis.fetch when the client is created at import time.
 const fetchMock = vi.hoisted(() => {
@@ -8,7 +8,15 @@ const fetchMock = vi.hoisted(() => {
   return mock;
 });
 
-import { getHeadToHead, getMatchesPage, getOverview, getPlayerStats, getRecentMatches, searchPlayers } from "./index";
+import {
+  getHeadToHead,
+  getMatchesPage,
+  getOverview,
+  getPlayerSeasons,
+  getPlayerStats,
+  getRecentMatches,
+  searchPlayers,
+} from "./index";
 
 function respond(status: number, body?: unknown, headers: Record<string, string> = {}) {
   fetchMock.mockResolvedValueOnce(
@@ -57,6 +65,7 @@ describe.each([
   ["getRecentMatches", () => getRecentMatches("p1")],
   ["getMatchesPage", () => getMatchesPage("p1", 0, 50)],
   ["getHeadToHead", () => getHeadToHead("p1", "p2")],
+  ["getPlayerSeasons", () => getPlayerSeasons("p1")],
 ])("%s", (_, call) => {
   test("returns undefined on 404", async () => {
     respond(404, { title: "Not Found" });
@@ -88,6 +97,23 @@ test("getPlayerStats returns the body on 200", async () => {
   };
   respond(200, stats);
   await expect(getPlayerStats("p1")).resolves.toEqual(stats);
+});
+
+test("getPlayerSeasons returns the seasons on 200", async () => {
+  const seasons: PlayerSeason[] = [
+    {
+      season: "Winter 2025/26",
+      type: "WINTER",
+      startsOn: "2025-10-01",
+      endsOn: "2026-03-31",
+      matchesPlayed: 2,
+      record: { wins: 1, losses: 1, winPercentage: 50 },
+      tieBreak: { tieBreaksPlayed: 0, tieBreaksWon: 0, tieBreakWinPercentage: 0 },
+    },
+  ];
+  respond(200, seasons);
+  await expect(getPlayerSeasons("p1")).resolves.toEqual(seasons);
+  expect(new URL((fetchMock.mock.calls[0][0] as Request).url).pathname).toMatch(/\/players\/p1\/seasons$/);
 });
 
 describe("getMatchesPage", () => {

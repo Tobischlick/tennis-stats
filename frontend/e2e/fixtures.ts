@@ -1,4 +1,4 @@
-import type { HeadToHead, Overview, PlayerStats, PlayerSummary, RecentMatch } from "@/lib/api-client/types";
+import type { HeadToHead, Overview, PlayerSeason, PlayerStats, PlayerSummary, RecentMatch } from "@/lib/api-client/types";
 
 export const anna: PlayerSummary = { id: "anna", name: "Anna Schmidt", club: "TC Blau-Weiss Karlsruhe" };
 export const berta: PlayerSummary = { id: "berta", name: "Berta Schuster", club: "TC Rot-Gelb Heidelberg" };
@@ -102,6 +102,21 @@ export const stats: Record<string, PlayerStats> = {
     decidingSet: null,
     firstSet: null,
   },
+};
+
+// Adds up to stats.anna: all of Anna's matches are from one season.
+export const seasons: Record<string, PlayerSeason[]> = {
+  anna: [
+    {
+      season: "Sommer 2026",
+      type: "SUMMER",
+      startsOn: "2026-04-01",
+      endsOn: "2026-09-30",
+      matchesPlayed: 3,
+      record: { wins: 2, losses: 1, winPercentage: 66.7 },
+      tieBreak: { tieBreaksPlayed: 4, tieBreaksWon: 3, tieBreakWinPercentage: 75 },
+    },
+  ],
 };
 
 export const headToHead: Record<string, HeadToHead> = {

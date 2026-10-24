@@ -7,9 +7,17 @@ import { FirstSetCard } from "@/components/first-set-card";
 import { FormDots } from "@/components/form-dots";
 import { Initials } from "@/components/player-list";
 import { RecentMatches } from "@/components/recent-matches";
+import { SeasonTrend } from "@/components/season-trend";
 import { BigNumber, Meter, StatCard } from "@/components/stat-card";
 import { firstName, formatPercent, isSmallSample, matchCount, resultLabel, tieBreakVerdict } from "@/lib/format";
-import { getPlayerStats, getRecentMatches, type PlayerStats, type RecentMatch } from "@/lib/api-client";
+import {
+  getPlayerSeasons,
+  getPlayerStats,
+  getRecentMatches,
+  type PlayerSeason,
+  type PlayerStats,
+  type RecentMatch,
+} from "@/lib/api-client";
 
 export async function generateMetadata({ params }: PageProps<"/player/[id]">): Promise<Metadata> {
   // A failed fetch is left to the page render, which shows the error boundary; the tab still gets a title.
@@ -19,7 +27,11 @@ export async function generateMetadata({ params }: PageProps<"/player/[id]">): P
 
 export default async function PlayerPage({ params }: PageProps<"/player/[id]">) {
   const { id } = await params;
-  const [stats, recentMatches] = await Promise.all([getPlayerStats(id), getRecentMatches(id)]);
+  const [stats, recentMatches, seasons] = await Promise.all([
+    getPlayerStats(id),
+    getRecentMatches(id),
+    getPlayerSeasons(id),
+  ]);
   if (!stats) notFound();
   const { player } = stats;
 
@@ -43,7 +55,11 @@ export default async function PlayerPage({ params }: PageProps<"/player/[id]">) 
         </div>
       </header>
 
-      {stats.hasEnoughData ? <Stats stats={stats} recentMatches={recentMatches ?? []} /> : <NoData name={player.name} />}
+      {stats.hasEnoughData ? (
+        <Stats stats={stats} recentMatches={recentMatches ?? []} seasons={seasons ?? []} />
+      ) : (
+        <NoData name={player.name} />
+      )}
 
       <div className="mt-4 md:mt-5">
         <ComparePicker playerId={id} playerName={player.name} />
@@ -52,7 +68,15 @@ export default async function PlayerPage({ params }: PageProps<"/player/[id]">) 
   );
 }
 
-function Stats({ stats, recentMatches }: { stats: PlayerStats; recentMatches: RecentMatch[] }) {
+function Stats({
+  stats,
+  recentMatches,
+  seasons,
+}: {
+  stats: PlayerStats;
+  recentMatches: RecentMatch[];
+  seasons: PlayerSeason[];
+}) {
   const { record, tieBreak, streak, decidingSet, firstSet } = stats;
   if (!record || !tieBreak || !streak || !decidingSet || !firstSet) return <NoData name={stats.player.name} />;
   const streakText = `${streak.current.count} ${resultLabel(streak.current.result, streak.current.count)}`;
@@ -142,6 +166,8 @@ function Stats({ stats, recentMatches }: { stats: PlayerStats; recentMatches: Re
             <Meter value={record.winPercentage} />
           </div>
         </StatCard>
+
+        {seasons.length > 0 && <SeasonTrend seasons={seasons} />}
 
         <StatCard label="Entscheidungssatz" className="md:col-span-2">
           {decidingSet.played > 0 ? (

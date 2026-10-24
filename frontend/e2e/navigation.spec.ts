@@ -18,9 +18,14 @@ test("player page shows the stats", async ({ page }) => {
   await page.goto(`/player/${anna.id}`);
 
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(anna.name);
-  await expect(page.getByText("3 von 4 Tie-Breaks gewonnen")).toBeVisible();
+  await expect(page.getByText("3 von 4 Tie-Breaks gewonnen", { exact: true })).toBeVisible();
   await expect(page.getByText("1 von 1 Entscheidungssätzen gewonnen")).toBeVisible();
   await expect(page.getByText("1 von 2 nach verlorenem ersten Satz noch gewonnen")).toBeVisible();
+  const seasons = page.getByRole("list", { name: "Saisons, älteste zuerst" });
+  await expect(seasons.getByRole("heading", { name: "Sommer 2026" })).toBeVisible();
+  await expect(seasons.getByText("3 Matches · 2:1 · 3 von 4 Tie-Breaks gewonnen")).toBeVisible();
+  await expect(seasons.getByText("kleine Stichprobe")).toBeVisible();
+  await expect(page.getByText("Erst eine Saison mit Matches erfasst – der Verlauf erscheint ab der zweiten Saison.")).toBeVisible();
   await expect(page.getByText(`Sieg gegen ${berta.name}`)).toHaveCount(2);
 });
 

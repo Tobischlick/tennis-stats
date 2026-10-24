@@ -105,6 +105,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/players/{id}/seasons": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a player's win/loss and tie-break record per season, oldest first
+         * @description Journey: checking your own progress. Splits the player's record into BTV seasons, derived from the meeting date (`playedOn`):
+         *     - Summer ("Sommer 2026"): April 1 to September 30 of that year. - Winter ("Winter 2025/26"): October 1 to March 31 of the next year,
+         *       so a meeting in January to March belongs to the winter that
+         *       started the previous October.
+         *
+         *     Wins, losses and tie-breaks are counted by the same rules as `record` and `tieBreak` on /players/{id}/stats (same rubbers, same tie-break definition), so the seasons add up to the overall numbers. Only seasons with at least one match or tie-break are listed, oldest first.
+         */
+        get: operations["getPlayerSeasons"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -277,6 +302,32 @@ export interface components {
             opponentTieBreak: number | null;
             /** @description True when this "set" was a 10-point match tie-break. */
             matchTieBreak: boolean;
+        };
+        /** @description The player's record within one BTV season, see GET /players/{id}/seasons for the season boundaries. */
+        PlayerSeason: {
+            /**
+             * @description Display name: "Sommer <year>" for a summer, "Winter <start year>/<two-digit end year>" for a winter.
+             * @example Winter 2025/26
+             */
+            season: string;
+            /** @enum {string} */
+            type: "SUMMER" | "WINTER";
+            /**
+             * Format: date
+             * @description First day of the season (April 1 or October 1).
+             * @example 2025-10-01
+             */
+            startsOn: string;
+            /**
+             * Format: date
+             * @description Last day of the season (September 30 or March 31).
+             * @example 2026-03-31
+             */
+            endsOn: string;
+            /** @description Rubbers with a winner in this season (wins + losses). 0 only for a season whose sole rubbers didn't settle a winner but had a tie-break. */
+            matchesPlayed: number;
+            record: components["schemas"]["WinLossRecord"];
+            tieBreak: components["schemas"]["TieBreakStats"];
         };
         ErrorResponse: {
             /** @example No player with id 'zzz999' */
@@ -530,6 +581,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description No player with this id. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    getPlayerSeasons: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Id of the player. */
+                id: components["parameters"]["PlayerId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The player's seasons, oldest first. Empty array if the player has no crawled matches yet. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlayerSeason"][];
                 };
             };
             /** @description No player with this id. */

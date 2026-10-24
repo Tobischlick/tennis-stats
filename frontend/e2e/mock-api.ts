@@ -1,5 +1,5 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import { headToHead, matches, overview, players, stats, UNREACHABLE_PLAYER_ID } from "./fixtures";
+import { headToHead, matches, overview, players, seasons, stats, UNREACHABLE_PLAYER_ID } from "./fixtures";
 
 export const MOCK_API_PORT = 3101;
 
@@ -29,6 +29,7 @@ function handle(req: IncomingMessage, res: ServerResponse) {
       const limit = Number(url.searchParams.get("limit") ?? 10);
       return json(res, 200, all.slice(offset, offset + limit), { "X-Total-Count": String(all.length) });
     }
+    if (sub === "seasons") return json(res, 200, seasons[id] ?? []);
     const h2h = sub === "head-to-head" && headToHead[`${id}/${opponentId}`];
     if (h2h) return json(res, 200, h2h);
   }

@@ -400,6 +400,64 @@ class PlayerStatsControllerTest implements PostgresTestcontainer {
                 .andExpect(jsonPath("$.message").value(containsString("zzz999")));
     }
 
+    private void annaAndPartnerPlayDoubles(Player partner, LocalDate playedOn, boolean annaWins) {
+        Player opponent = playerRepository.save(new Player("Olga", "Ott"));
+        Meeting meeting = new Meeting(home, away, playedOn);
+        Rubber rubber = meeting.addRubber(RubberType.DOUBLES, 1);
+        rubber.addParticipant(anna, Side.HOME);
+        rubber.addParticipant(partner, Side.HOME);
+        rubber.addParticipant(bea, Side.AWAY);
+        rubber.addParticipant(opponent, Side.AWAY);
+        rubber.addSet(1, SetType.REGULAR, annaWins ? 6 : 2, annaWins ? 2 : 6);
+        rubber.addSet(2, SetType.REGULAR, annaWins ? 6 : 3, annaWins ? 3 : 6);
+        meetingRepository.saveAndFlush(meeting);
+    }
+
+    @Test
+    void returnsTheRecordWithEachDoublesPartner() throws Exception {
+        Player clara = playerRepository.save(new Player("Clara", "Conrad"));
+        Player dana = playerRepository.save(new Player("Dana", "Diehl"));
+        annaAndPartnerPlayDoubles(clara, LocalDate.of(2026, 5, 3), true);
+        annaAndPartnerPlayDoubles(clara, LocalDate.of(2026, 5, 10), false);
+        annaAndPartnerPlayDoubles(clara, LocalDate.of(2026, 5, 17), true);
+        annaAndPartnerPlayDoubles(dana, LocalDate.of(2026, 5, 24), true);
+
+        mockMvc.perform(get("/api/v1/players/{id}/doubles-partners", anna.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.playerId").value(String.valueOf(anna.getId())))
+                .andExpect(jsonPath("$.player.name").value("Anna Adler"))
+                .andExpect(jsonPath("$.matchesPlayed").value(4))
+                .andExpect(jsonPath("$.hasEnoughData").value(true))
+                .andExpect(jsonPath("$.partners.length()").value(2))
+                .andExpect(jsonPath("$.partners[0].partner.id").value(String.valueOf(clara.getId())))
+                .andExpect(jsonPath("$.partners[0].partner.name").value("Clara Conrad"))
+                .andExpect(jsonPath("$.partners[0].partner.club").value("TC Blau-Weiss"))
+                .andExpect(jsonPath("$.partners[0].matchesPlayed").value(3))
+                .andExpect(jsonPath("$.partners[0].record.wins").value(2))
+                .andExpect(jsonPath("$.partners[0].record.losses").value(1))
+                .andExpect(jsonPath("$.partners[0].record.winPercentage").value(66.7))
+                .andExpect(jsonPath("$.partners[1].partner.name").value("Dana Diehl"))
+                .andExpect(jsonPath("$.partners[1].matchesPlayed").value(1))
+                .andExpect(jsonPath("$.partners[1].record.winPercentage").value(100.0));
+    }
+
+    @Test
+    void returnsANoDataDoublesPartnersResponseForAPlayerWithoutDoubles() throws Exception {
+        annaWinsAgainstBea(LocalDate.of(2026, 5, 3));
+
+        mockMvc.perform(get("/api/v1/players/{id}/doubles-partners", anna.getId()))
+                .andExpect(status().isOk())
+                .andExpect(content().json("{\"matchesPlayed\":0,\"hasEnoughData\":false,\"partners\":[]}"))
+                .andExpect(jsonPath("$.player.name").value("Anna Adler"));
+    }
+
+    @Test
+    void returnsNotFoundForDoublesPartnersOfAnUnknownPlayer() throws Exception {
+        mockMvc.perform(get("/api/v1/players/{id}/doubles-partners", "zzz999"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value(containsString("zzz999")));
+    }
+
     @Test
     void comparingAPlayerWithThemselvesReturnsTheNoDataResponse() throws Exception {
         annaWinsAgainstBea(LocalDate.of(2026, 5, 3));

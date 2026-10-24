@@ -1,7 +1,16 @@
-import type { HeadToHead, Overview, PlayerStats, PlayerSummary, RecentMatch } from "@/lib/api-client/types";
+import type {
+  DoublesPartners,
+  HeadToHead,
+  Overview,
+  PlayerStats,
+  PlayerSummary,
+  RecentMatch,
+} from "@/lib/api-client/types";
 
 export const anna: PlayerSummary = { id: "anna", name: "Anna Schmidt", club: "TC Blau-Weiss Karlsruhe" };
 export const berta: PlayerSummary = { id: "berta", name: "Berta Schuster", club: "TC Rot-Gelb Heidelberg" };
+/** Anna's doubles partner; not in the search results, but her player page exists. */
+export const clara: PlayerSummary = { id: "clara", name: "Clara Wolf", club: "TC Blau-Weiss Karlsruhe" };
 
 /** Requests for this player's data get their connection dropped, as if the backend were down. */
 export const UNREACHABLE_PLAYER_ID = "offline";
@@ -96,9 +105,14 @@ export const stats: Record<string, PlayerStats> = {
       away: { wins: 1, losses: 0, winPercentage: 100 },
     },
   },
-  berta: {
-    playerId: berta.id,
-    player: berta,
+  berta: noStats(berta),
+  clara: noStats(clara),
+};
+
+function noStats(player: PlayerSummary): PlayerStats {
+  return {
+    playerId: player.id,
+    player,
     matchesPlayed: 0,
     hasEnoughData: false,
     record: null,
@@ -107,6 +121,24 @@ export const stats: Record<string, PlayerStats> = {
     decidingSet: null,
     firstSet: null,
     homeAway: null,
+  };
+}
+
+/** Players without an entry here have no doubles. */
+export const doublesPartners: Record<string, DoublesPartners> = {
+  anna: {
+    playerId: anna.id,
+    player: anna,
+    matchesPlayed: 8,
+    hasEnoughData: true,
+    partners: [
+      { partner: clara, matchesPlayed: 6, record: { wins: 5, losses: 1, winPercentage: 83.3 } },
+      {
+        partner: { id: "mia", name: "Mia Keller", club: "TC Blau-Weiss Karlsruhe" },
+        matchesPlayed: 2,
+        record: { wins: 2, losses: 0, winPercentage: 100 },
+      },
+    ],
   },
 };
 

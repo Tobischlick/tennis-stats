@@ -36,6 +36,24 @@ Responses are fetched with `cache: "no-store"`, so new crawl results show up on
 the next page load. If the backend is unreachable, the pages show a calm error
 state with a retry button instead of the data.
 
+## Tests
+
+`npm test` runs the Vitest component and `lib/` tests.
+
+`npm run test:e2e` runs the Playwright UI tests in `e2e/`: it builds the app,
+starts it with `next start` on port 3100 and drives it in Chromium. Instead of
+the real backend, a mock API on port 3101 serves the fixtures in
+`e2e/fixtures.ts`, which are typed against `lib/api/schema.d.ts` and so break
+when the API spec changes. Install the browser once before the first run
+(add `--with-deps` if the system libraries Chromium needs are missing):
+
+```sh
+npx playwright install chromium
+```
+
+After a failed run, `npx playwright show-report` opens the HTML report with
+traces of the failed tests.
+
 ## API types
 
 `lib/api/schema.d.ts` is generated from [`api/openapi.yaml`](../api/openapi.yaml)

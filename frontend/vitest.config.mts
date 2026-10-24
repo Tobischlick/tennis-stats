@@ -13,6 +13,6 @@ export default defineConfig({
   },
   test: {
     environment: "jsdom",
-    exclude: [...configDefaults.exclude, ".next/**"],
+    exclude: [...configDefaults.exclude, ".next/**", "e2e/**"],
   },
 });

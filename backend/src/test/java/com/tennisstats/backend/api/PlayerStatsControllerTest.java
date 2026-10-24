@@ -162,6 +162,40 @@ class PlayerStatsControllerTest implements PostgresTestcontainer {
     }
 
     @Test
+    void returnsTheFirstSetComebackAndBlownLeadRecord() throws Exception {
+        annaWinsAgainstBea(LocalDate.of(2026, 5, 3));
+        annaLosesAgainstBea(LocalDate.of(2026, 5, 10));
+
+        Rubber comeback = singlesRubber(LocalDate.of(2026, 5, 17), anna, bea);
+        comeback.addSet(1, SetType.REGULAR, 4, 6);
+        comeback.addSet(2, SetType.REGULAR, 6, 3);
+        comeback.addSet(3, SetType.MATCH_TIE_BREAK, 10, 6);
+        meetingRepository.saveAndFlush(comeback.getMeeting());
+
+        Rubber blownLead = singlesRubber(LocalDate.of(2026, 5, 24), anna, bea);
+        blownLead.addSet(1, SetType.REGULAR, 6, 1);
+        blownLead.addSet(2, SetType.REGULAR, 4, 6);
+        blownLead.addSet(3, SetType.MATCH_TIE_BREAK, 9, 11);
+        meetingRepository.saveAndFlush(blownLead.getMeeting());
+
+        Rubber retirement = singlesRubber(LocalDate.of(2026, 5, 31), anna, bea);
+        retirement.setRetiredSide(Side.AWAY);
+        retirement.addSet(1, SetType.REGULAR, 2, 6);
+        retirement.addSet(2, SetType.REGULAR, 1, 0).setUnfinished(true);
+        meetingRepository.saveAndFlush(retirement.getMeeting());
+
+        mockMvc.perform(get("/api/v1/players/{id}/stats", anna.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.matchesPlayed").value(5))
+                .andExpect(jsonPath("$.firstSet.lostFirstSet").value(2))
+                .andExpect(jsonPath("$.firstSet.comebacks").value(1))
+                .andExpect(jsonPath("$.firstSet.comebackPercentage").value(50.0))
+                .andExpect(jsonPath("$.firstSet.wonFirstSet").value(2))
+                .andExpect(jsonPath("$.firstSet.blownLeads").value(1))
+                .andExpect(jsonPath("$.firstSet.blownLeadPercentage").value(50.0));
+    }
+
+    @Test
     void reportsZeroTieBreakPercentageForAPlayerWhoNeverPlayedOne() throws Exception {
         annaWinsAgainstBea(LocalDate.of(2026, 5, 3));
 
@@ -184,7 +218,8 @@ class PlayerStatsControllerTest implements PostgresTestcontainer {
                 .andExpect(jsonPath("$.record").value(nullValue()))
                 .andExpect(jsonPath("$.tieBreak").value(nullValue()))
                 .andExpect(jsonPath("$.streak").value(nullValue()))
-                .andExpect(jsonPath("$.decidingSet").value(nullValue()));
+                .andExpect(jsonPath("$.decidingSet").value(nullValue()))
+                .andExpect(jsonPath("$.firstSet").value(nullValue()));
     }
 
     @Test

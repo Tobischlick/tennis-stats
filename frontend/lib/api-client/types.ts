@@ -14,3 +14,4 @@ export type WinLossRecord = Schemas["WinLossRecord"];
 export type FirstSetStats = Schemas["FirstSetStats"];
 export type DoublesPartners = Schemas["DoublesPartners"];
 export type DoublesPartner = Schemas["DoublesPartner"];
+export type HomeAwayStats = Schemas["HomeAwayStats"];

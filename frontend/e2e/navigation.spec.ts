@@ -21,6 +21,7 @@ test("player page shows the stats", async ({ page }) => {
   await expect(page.getByText("3 von 4 Tie-Breaks gewonnen")).toBeVisible();
   await expect(page.getByText("1 von 1 Entscheidungssätzen gewonnen")).toBeVisible();
   await expect(page.getByText("1 von 2 nach verlorenem ersten Satz noch gewonnen")).toBeVisible();
+  await expect(page.getByText("1 Sieg · 1 Niederlage")).toBeVisible();
   await expect(page.getByText(`Sieg gegen ${berta.name}`)).toHaveCount(2);
 });
 

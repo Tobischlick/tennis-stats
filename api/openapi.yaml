@@ -142,7 +142,7 @@ paths:
     get:
       operationId: getPlayerStats
       tags: [players]
-      summary: Get a player's win/loss, tie-break, streak, deciding-set and first-set stats
+      summary: Get a player's win/loss, tie-break, streak, deciding-set, first-set and home/away stats
       description: >
         Journeys: scouting an opponent, checking your own progress, casual
         browsing. When the player exists but has no crawled matches yet,
@@ -192,6 +192,15 @@ paths:
                       wonFirstSet: 27
                       blownLeads: 2
                       blownLeadPercentage: 7.4
+                    homeAway:
+                      home:
+                        wins: 16
+                        losses: 6
+                        winPercentage: 72.7
+                      away:
+                        wins: 11
+                        losses: 9
+                        winPercentage: 55.0
                 notEnoughData:
                   summary: Player exists but has no crawled matches yet
                   value:
@@ -207,6 +216,7 @@ paths:
                     streak: null
                     decidingSet: null
                     firstSet: null
+                    homeAway: null
         "404":
           description: No player with this id.
           content:
@@ -676,6 +686,24 @@ components:
           maximum: 100
           description: blownLeads / wonFirstSet * 100, rounded to one decimal; 0 when wonFirstSet is 0.
 
+    HomeAwayStats:
+      type: object
+      description: >
+        The player's win/loss record split by whether their team was the
+        home or the away team of the meeting. Counts the same rubbers
+        (singles and doubles) as `PlayerStats.record`, so home and away add
+        up to it.
+      required: [home, away]
+      properties:
+        home:
+          description: Rubbers where the player's team was the home team.
+          allOf:
+            - $ref: "#/components/schemas/WinLossRecord"
+        away:
+          description: Rubbers where the player's team was the away team.
+          allOf:
+            - $ref: "#/components/schemas/WinLossRecord"
+
     MatchResult:
       type: string
       enum: [WIN, LOSS]
@@ -704,12 +732,12 @@ components:
     PlayerStats:
       type: object
       description: >
-        Win/loss, tie-break, streak, deciding-set and first-set stats for a
-        player. When `hasEnoughData` is false, the player exists but has no
-        crawled matches yet — `record`, `tieBreak`, `streak`, `decidingSet`
-        and `firstSet` are null rather than being populated with zeroes, so the frontend can
+        Win/loss, tie-break, streak, deciding-set, first-set and home/away
+        stats for a player. When `hasEnoughData` is false, the player exists
+        but has no crawled matches yet — `record`, `tieBreak`, `streak`,
+        `decidingSet`, `firstSet` and `homeAway` are null rather than being populated with zeroes, so the frontend can
         distinguish "no data yet" from "zero losses".
-      required: [playerId, player, matchesPlayed, hasEnoughData, record, tieBreak, streak, decidingSet, firstSet]
+      required: [playerId, player, matchesPlayed, hasEnoughData, record, tieBreak, streak, decidingSet, firstSet, homeAway]
       properties:
         playerId:
           type: string
@@ -748,6 +776,11 @@ components:
           nullable: true
           allOf:
             - $ref: "#/components/schemas/FirstSetStats"
+        homeAway:
+          type: object
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/HomeAwayStats"
 
     HeadToHead:
       type: object

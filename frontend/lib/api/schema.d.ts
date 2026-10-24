@@ -53,7 +53,7 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get a player's win/loss, tie-break, streak, deciding-set and first-set stats
+         * Get a player's win/loss, tie-break, streak, deciding-set, first-set and home/away stats
          * @description Journeys: scouting an opponent, checking your own progress, casual browsing. When the player exists but has no crawled matches yet, `hasEnoughData` is `false` and the stat blocks are omitted rather than showing zeroes — see PlayerStats schema.
          */
         get: operations["getPlayerStats"];
@@ -190,6 +190,13 @@ export interface components {
              */
             blownLeadPercentage: number;
         };
+        /** @description The player's win/loss record split by whether their team was the home or the away team of the meeting. Counts the same rubbers (singles and doubles) as `PlayerStats.record`, so home and away add up to it. */
+        HomeAwayStats: {
+            /** @description Rubbers where the player's team was the home team. */
+            home: components["schemas"]["WinLossRecord"];
+            /** @description Rubbers where the player's team was the away team. */
+            away: components["schemas"]["WinLossRecord"];
+        };
         /** @enum {string} */
         MatchResult: "WIN" | "LOSS";
         Streak: {
@@ -201,7 +208,7 @@ export interface components {
             /** @description Most recent matches first, newest to oldest. */
             recentResults: components["schemas"]["MatchResult"][];
         };
-        /** @description Win/loss, tie-break, streak, deciding-set and first-set stats for a player. When `hasEnoughData` is false, the player exists but has no crawled matches yet — `record`, `tieBreak`, `streak`, `decidingSet` and `firstSet` are null rather than being populated with zeroes, so the frontend can distinguish "no data yet" from "zero losses". */
+        /** @description Win/loss, tie-break, streak, deciding-set, first-set and home/away stats for a player. When `hasEnoughData` is false, the player exists but has no crawled matches yet — `record`, `tieBreak`, `streak`, `decidingSet`, `firstSet` and `homeAway` are null rather than being populated with zeroes, so the frontend can distinguish "no data yet" from "zero losses". */
         PlayerStats: {
             playerId: string;
             /** @description Name and club of `playerId`, present even when `hasEnoughData` is false. */
@@ -214,6 +221,7 @@ export interface components {
             streak: components["schemas"]["Streak"] | null;
             decidingSet: components["schemas"]["DecidingSetStats"] | null;
             firstSet: components["schemas"]["FirstSetStats"] | null;
+            homeAway: components["schemas"]["HomeAwayStats"] | null;
         };
         /** @description Head-to-head record between two players. The top-level `matchesPlayed`, `hasEnoughData`, `record` and `recentResults` cover singles rubbers only: `hasEnoughData` is false when the two players have never played each other in singles yet, in which case `record` is null and `recentResults` is empty. Doubles in which the two stood on opposite sides are a separate record in `doubles`, which can have meetings even when there is no singles meeting. Doubles where the two played together as partners are not counted anywhere. */
         HeadToHead: {

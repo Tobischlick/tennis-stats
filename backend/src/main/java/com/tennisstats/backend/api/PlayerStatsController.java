@@ -8,6 +8,7 @@ import com.tennisstats.backend.stats.DoublesPartnerService;
 import com.tennisstats.backend.stats.FirstSetService;
 import com.tennisstats.backend.stats.HeadToHeadRecord;
 import com.tennisstats.backend.stats.HeadToHeadService;
+import com.tennisstats.backend.stats.HomeAwayService;
 import com.tennisstats.backend.stats.PlayerClubService;
 import com.tennisstats.backend.stats.StreakService;
 import com.tennisstats.backend.stats.TieBreakService;
@@ -32,6 +33,7 @@ public class PlayerStatsController {
     private final DecidingSetService decidingSetService;
     private final FirstSetService firstSetService;
     private final DoublesPartnerService doublesPartnerService;
+    private final HomeAwayService homeAwayService;
     private final PlayerClubService playerClubService;
 
     public PlayerStatsController(
@@ -43,6 +45,7 @@ public class PlayerStatsController {
             DecidingSetService decidingSetService,
             FirstSetService firstSetService,
             DoublesPartnerService doublesPartnerService,
+            HomeAwayService homeAwayService,
             PlayerClubService playerClubService) {
         this.playerRepository = playerRepository;
         this.winLossService = winLossService;
@@ -52,6 +55,7 @@ public class PlayerStatsController {
         this.decidingSetService = decidingSetService;
         this.firstSetService = firstSetService;
         this.doublesPartnerService = doublesPartnerService;
+        this.homeAwayService = homeAwayService;
         this.playerClubService = playerClubService;
     }
 
@@ -68,7 +72,8 @@ public class PlayerStatsController {
                 tieBreakService.getTieBreakStats(playerId),
                 streakService.getStreakStats(playerId),
                 decidingSetService.getDecidingSetStats(playerId),
-                firstSetService.getFirstSetStats(playerId)));
+                firstSetService.getFirstSetStats(playerId),
+                homeAwayService.getHomeAwayStats(playerId)));
     }
 
     @GetMapping("/{id}/head-to-head/{opponentId}")

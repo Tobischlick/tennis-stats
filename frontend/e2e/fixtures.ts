@@ -99,6 +99,11 @@ export const stats: Record<string, PlayerStats> = {
       blownLeads: 0,
       blownLeadPercentage: 0,
     },
+    // The 05-03 loss and the 06-14 win were home meetings, the 05-24 win an away one.
+    homeAway: {
+      home: { wins: 1, losses: 1, winPercentage: 50 },
+      away: { wins: 1, losses: 0, winPercentage: 100 },
+    },
   },
   berta: noStats(berta),
   clara: noStats(clara),
@@ -115,6 +120,7 @@ function noStats(player: PlayerSummary): PlayerStats {
     streak: null,
     decidingSet: null,
     firstSet: null,
+    homeAway: null,
   };
 }
 

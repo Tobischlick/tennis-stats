@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ChevronRight, Sprout } from "lucide-react";
 import { ComparePicker } from "@/components/compare-picker";
+import { FirstSetCard } from "@/components/first-set-card";
 import { FormDots } from "@/components/form-dots";
 import { Initials } from "@/components/player-list";
 import { RecentMatches } from "@/components/recent-matches";
@@ -52,8 +53,8 @@ export default async function PlayerPage({ params }: PageProps<"/player/[id]">) 
 }
 
 function Stats({ stats, recentMatches }: { stats: PlayerStats; recentMatches: RecentMatch[] }) {
-  const { record, tieBreak, streak, decidingSet } = stats;
-  if (!record || !tieBreak || !streak || !decidingSet) return <NoData name={stats.player.name} />;
+  const { record, tieBreak, streak, decidingSet, firstSet } = stats;
+  if (!record || !tieBreak || !streak || !decidingSet || !firstSet) return <NoData name={stats.player.name} />;
   const streakText = `${streak.current.count} ${resultLabel(streak.current.result, streak.current.count)}`;
 
   return (
@@ -167,6 +168,8 @@ function Stats({ stats, recentMatches }: { stats: PlayerStats; recentMatches: Re
             </>
           )}
         </StatCard>
+
+        <FirstSetCard firstSet={firstSet} />
 
         {recentMatches.length > 0 && (
           <StatCard label="Letzte Matches" className="md:col-span-2">

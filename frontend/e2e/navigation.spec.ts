@@ -20,6 +20,7 @@ test("player page shows the stats", async ({ page }) => {
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(anna.name);
   await expect(page.getByText("3 von 4 Tie-Breaks gewonnen")).toBeVisible();
   await expect(page.getByText("1 von 1 Entscheidungssätzen gewonnen")).toBeVisible();
+  await expect(page.getByText("1 von 2 nach verlorenem ersten Satz noch gewonnen")).toBeVisible();
   await expect(page.getByText(`Sieg gegen ${berta.name}`)).toHaveCount(2);
 });
 

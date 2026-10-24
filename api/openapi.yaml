@@ -142,7 +142,7 @@ paths:
     get:
       operationId: getPlayerStats
       tags: [players]
-      summary: Get a player's win/loss, tie-break, streak and deciding-set stats
+      summary: Get a player's win/loss, tie-break, streak, deciding-set and first-set stats
       description: >
         Journeys: scouting an opponent, checking your own progress, casual
         browsing. When the player exists but has no crawled matches yet,
@@ -185,6 +185,13 @@ paths:
                       played: 9
                       won: 5
                       winPercentage: 55.6
+                    firstSet:
+                      lostFirstSet: 14
+                      comebacks: 3
+                      comebackPercentage: 21.4
+                      wonFirstSet: 27
+                      blownLeads: 2
+                      blownLeadPercentage: 7.4
                 notEnoughData:
                   summary: Player exists but has no crawled matches yet
                   value:
@@ -199,6 +206,7 @@ paths:
                     tieBreak: null
                     streak: null
                     decidingSet: null
+                    firstSet: null
         "404":
           description: No player with this id.
           content:
@@ -556,6 +564,45 @@ components:
           maximum: 100
           description: won / played * 100, rounded to one decimal; 0 when played is 0.
 
+    FirstSetStats:
+      type: object
+      description: >
+        How the player's rubbers (singles and doubles) ended after the first
+        set: comebacks after losing it and blown leads after winning it.
+        Only rubbers with a finished first set and a known winner count;
+        rubbers decided by a retirement are left out, since a walkover win
+        after a lost first set is no comeback.
+      required: [lostFirstSet, comebacks, comebackPercentage, wonFirstSet, blownLeads, blownLeadPercentage]
+      properties:
+        lostFirstSet:
+          type: integer
+          minimum: 0
+          description: Rubbers where the player lost the first set.
+        comebacks:
+          type: integer
+          minimum: 0
+          description: Of those, rubbers the player still won.
+        comebackPercentage:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+          description: comebacks / lostFirstSet * 100, rounded to one decimal; 0 when lostFirstSet is 0.
+        wonFirstSet:
+          type: integer
+          minimum: 0
+          description: Rubbers where the player won the first set.
+        blownLeads:
+          type: integer
+          minimum: 0
+          description: Of those, rubbers the player still lost.
+        blownLeadPercentage:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+          description: blownLeads / wonFirstSet * 100, rounded to one decimal; 0 when wonFirstSet is 0.
+
     MatchResult:
       type: string
       enum: [WIN, LOSS]
@@ -584,12 +631,12 @@ components:
     PlayerStats:
       type: object
       description: >
-        Win/loss, tie-break, streak and deciding-set stats for a player. When
-        `hasEnoughData` is false, the player exists but has no crawled
-        matches yet — `record`, `tieBreak`, `streak` and `decidingSet` are
-        null rather than being populated with zeroes, so the frontend can
+        Win/loss, tie-break, streak, deciding-set and first-set stats for a
+        player. When `hasEnoughData` is false, the player exists but has no
+        crawled matches yet — `record`, `tieBreak`, `streak`, `decidingSet`
+        and `firstSet` are null rather than being populated with zeroes, so the frontend can
         distinguish "no data yet" from "zero losses".
-      required: [playerId, player, matchesPlayed, hasEnoughData, record, tieBreak, streak, decidingSet]
+      required: [playerId, player, matchesPlayed, hasEnoughData, record, tieBreak, streak, decidingSet, firstSet]
       properties:
         playerId:
           type: string
@@ -623,6 +670,11 @@ components:
           nullable: true
           allOf:
             - $ref: "#/components/schemas/DecidingSetStats"
+        firstSet:
+          type: object
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/FirstSetStats"
 
     HeadToHead:
       type: object

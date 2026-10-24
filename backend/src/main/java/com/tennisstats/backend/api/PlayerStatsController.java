@@ -3,6 +3,8 @@ package com.tennisstats.backend.api;
 import com.tennisstats.backend.domain.Player;
 import com.tennisstats.backend.domain.repository.PlayerRepository;
 import com.tennisstats.backend.stats.DecidingSetService;
+import com.tennisstats.backend.stats.DoublesPartnerRecord;
+import com.tennisstats.backend.stats.DoublesPartnerService;
 import com.tennisstats.backend.stats.FirstSetService;
 import com.tennisstats.backend.stats.HeadToHeadRecord;
 import com.tennisstats.backend.stats.HeadToHeadService;
@@ -29,6 +31,7 @@ public class PlayerStatsController {
     private final HeadToHeadService headToHeadService;
     private final DecidingSetService decidingSetService;
     private final FirstSetService firstSetService;
+    private final DoublesPartnerService doublesPartnerService;
     private final PlayerClubService playerClubService;
 
     public PlayerStatsController(
@@ -39,6 +42,7 @@ public class PlayerStatsController {
             HeadToHeadService headToHeadService,
             DecidingSetService decidingSetService,
             FirstSetService firstSetService,
+            DoublesPartnerService doublesPartnerService,
             PlayerClubService playerClubService) {
         this.playerRepository = playerRepository;
         this.winLossService = winLossService;
@@ -47,6 +51,7 @@ public class PlayerStatsController {
         this.headToHeadService = headToHeadService;
         this.decidingSetService = decidingSetService;
         this.firstSetService = firstSetService;
+        this.doublesPartnerService = doublesPartnerService;
         this.playerClubService = playerClubService;
     }
 
@@ -84,6 +89,18 @@ public class PlayerStatsController {
                 .toList();
         return ResponseEntity.ok(HeadToHead.from(
                 head, summaryOf(playerId), summaryOf(opponent), playerClubService.getClubs(partnerIds)));
+    }
+
+    @GetMapping("/{id}/doubles-partners")
+    public ResponseEntity<?> getDoublesPartners(@PathVariable String id) {
+        Long playerId = existingPlayerId(id);
+        if (playerId == null) {
+            return notFound(id);
+        }
+        List<DoublesPartnerRecord> partners = doublesPartnerService.getDoublesPartners(playerId);
+        List<Long> partnerIds = partners.stream().map(partner -> partner.partner().getId()).toList();
+        return ResponseEntity.ok(DoublesPartners.from(
+                playerId, summaryOf(playerId), partners, playerClubService.getClubs(partnerIds)));
     }
 
     // The spec defines no 400 on these paths, so an id that can't be a stored id is just an unknown player.

@@ -2,6 +2,7 @@ package com.tennisstats.backend.stats;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.tennisstats.backend.PostgresTestcontainer;
 import com.tennisstats.backend.domain.Meeting;
 import com.tennisstats.backend.domain.Player;
 import com.tennisstats.backend.domain.Rubber;
@@ -19,12 +20,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.test.annotation.DirtiesContext;
 
 @DataJpaTest
 @Import(OverviewService.class)
-@DirtiesContext
-class OverviewServiceTest {
+class OverviewServiceTest implements PostgresTestcontainer {
 
     @Autowired
     private TeamRepository teamRepository;

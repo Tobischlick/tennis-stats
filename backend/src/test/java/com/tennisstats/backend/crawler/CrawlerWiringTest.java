@@ -2,6 +2,7 @@ package com.tennisstats.backend.crawler;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.tennisstats.backend.PostgresTestcontainer;
 import java.time.Duration;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -9,7 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
 
-class CrawlerWiringTest {
+class CrawlerWiringTest implements PostgresTestcontainer {
 
     @Nested
     @SpringBootTest

@@ -3,6 +3,7 @@ package com.tennisstats.backend.crawler;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.tennisstats.backend.PostgresTestcontainer;
 import com.tennisstats.backend.domain.Meeting;
 import com.tennisstats.backend.domain.RubberType;
 import com.tennisstats.backend.domain.Team;
@@ -24,13 +25,11 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.web.client.RestClientException;
 
 @DataJpaTest
 @Import(MeetingPersistenceService.class)
-@DirtiesContext
-class CrawlServiceTest {
+class CrawlServiceTest implements PostgresTestcontainer {
 
     private static final String BASE_URL = "https://example.test/wa";
     private static final String GROUP_URL = BASE_URL + "/groupPage?championship=B1+S+2026&group=1";

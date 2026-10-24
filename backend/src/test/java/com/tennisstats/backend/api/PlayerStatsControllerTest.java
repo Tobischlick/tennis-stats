@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.tennisstats.backend.PostgresTestcontainer;
 import com.tennisstats.backend.domain.Meeting;
 import com.tennisstats.backend.domain.Player;
 import com.tennisstats.backend.domain.Rubber;
@@ -29,7 +30,7 @@ import org.springframework.transaction.annotation.Transactional;
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
-class PlayerStatsControllerTest {
+class PlayerStatsControllerTest implements PostgresTestcontainer {
 
     @Autowired
     private MockMvc mockMvc;

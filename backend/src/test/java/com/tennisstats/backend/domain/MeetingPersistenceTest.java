@@ -2,6 +2,7 @@ package com.tennisstats.backend.domain;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.tennisstats.backend.PostgresTestcontainer;
 import com.tennisstats.backend.domain.repository.MeetingRepository;
 import com.tennisstats.backend.domain.repository.PlayerRepository;
 import com.tennisstats.backend.domain.repository.RubberParticipantRepository;
@@ -13,11 +14,9 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
-import org.springframework.test.annotation.DirtiesContext;
 
 @DataJpaTest
-@DirtiesContext
-class MeetingPersistenceTest {
+class MeetingPersistenceTest implements PostgresTestcontainer {
 
     @Autowired
     private TeamRepository teamRepository;

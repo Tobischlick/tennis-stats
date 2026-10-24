@@ -3,6 +3,7 @@ package com.tennisstats.backend.crawler;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 
+import com.tennisstats.backend.PostgresTestcontainer;
 import com.tennisstats.backend.domain.Meeting;
 import com.tennisstats.backend.domain.RubberSet;
 import com.tennisstats.backend.domain.RubberType;
@@ -28,12 +29,10 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.test.annotation.DirtiesContext;
 
 @DataJpaTest
 @Import(MeetingPersistenceService.class)
-@DirtiesContext
-class MeetingPersistenceServiceTest {
+class MeetingPersistenceServiceTest implements PostgresTestcontainer {
 
     @Autowired
     private MeetingPersistenceService persistenceService;

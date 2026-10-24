@@ -2,6 +2,7 @@ package com.tennisstats.backend.crawler;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.tennisstats.backend.PostgresTestcontainer;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -15,7 +16,7 @@ import org.springframework.test.context.ActiveProfiles;
         webEnvironment = SpringBootTest.WebEnvironment.NONE,
         properties = {"tennisstats.crawler.groups=", "tennisstats.crawler.championships="})
 @ActiveProfiles("crawler")
-class CrawlerProfileTest {
+class CrawlerProfileTest implements PostgresTestcontainer {
 
     @Autowired
     private ApplicationContext context;

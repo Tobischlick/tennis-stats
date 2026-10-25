@@ -7,6 +7,7 @@ import ch.qos.logback.classic.Level;
 import com.tennisstats.backend.PostgresTestcontainer;
 import com.tennisstats.backend.domain.Meeting;
 import com.tennisstats.backend.domain.RubberType;
+import com.tennisstats.backend.domain.Side;
 import com.tennisstats.backend.domain.Team;
 import com.tennisstats.backend.domain.repository.MeetingRepository;
 import com.tennisstats.backend.domain.repository.RubberRepository;
@@ -229,6 +230,23 @@ class CrawlServiceTest implements PostgresTestcontainer {
         assertThat(summary.meetingsCrawled()).isEqualTo(28);
         Meeting refreshed = meetingRepository.findByExternalId("12710540").orElseThrow();
         assertThat(refreshed.getRubbers()).hasSize(9);
+    }
+
+    @Test
+    void skipsAMeetingStoredAsAWalkoverWithoutAnySets() throws IOException {
+        Team home = teamRepository.save(new Team("TC SW Neckarau 1"));
+        Team away = teamRepository.save(new Team("TC 70 Sandhausen 1"));
+        Meeting walkover = new Meeting(home, away, LocalDate.of(2026, 5, 10));
+        walkover.setExternalId("12710540");
+        walkover.addRubber(RubberType.SINGLES, 1).setRetiredSide(Side.AWAY);
+        meetingRepository.saveAndFlush(walkover);
+        FakePageFetcher fetcher = fixtureFetcher();
+
+        CrawlSummary summary = crawlService(fetcher, GROUP).crawl();
+
+        assertThat(fetcher.fetchedUrls).doesNotContain(reportUrl(12710540L));
+        assertThat(summary.meetingsSkipped()).isEqualTo(1);
+        assertThat(summary.meetingsCrawled()).isEqualTo(27);
     }
 
     @Test

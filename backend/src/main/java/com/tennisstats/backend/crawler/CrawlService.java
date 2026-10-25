@@ -102,12 +102,9 @@ class CrawlService {
                 try {
                     String reportHtml = pageFetcher.fetch(reportUrl(group, meeting.meetingId()));
                     MatchReport report = MatchReportParser.parse(reportHtml);
-                    persistenceService.persist(meeting, report);
+                    int rubbersSaved = persistenceService.persist(meeting, report).getRubbers().size();
                     groupCrawled++;
-                    log.debug(
-                            "Meeting {} crawled: {} rubbers saved",
-                            meeting.meetingId(),
-                            report.singles().size() + report.doubles().size());
+                    log.debug("Meeting {} crawled: {} rubbers saved", meeting.meetingId(), rubbersSaved);
                 } catch (CrawlFailedException e) {
                     throw e;
                 } catch (RuntimeException e) {

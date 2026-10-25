@@ -111,7 +111,7 @@ paths:
         - name: query
           in: query
           required: true
-          description: Name (or partial name) to search for.
+          description: Name (or partial name) to search for. First and last name can be combined in either order, e.g. "Tobias Schlick" or "Schlick, Tobias"; every word must match.
           schema:
             type: string
             minLength: 1

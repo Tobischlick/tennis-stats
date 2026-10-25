@@ -485,7 +485,7 @@ export interface operations {
     searchPlayers: {
         parameters: {
             query: {
-                /** @description Name (or partial name) to search for. */
+                /** @description Name (or partial name) to search for. First and last name can be combined in either order, e.g. "Tobias Schlick" or "Schlick, Tobias"; every word must match. */
                 query: string;
             };
             header?: never;

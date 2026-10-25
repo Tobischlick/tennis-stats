@@ -94,6 +94,14 @@ class PlayerControllerTest implements PostgresTestcontainer {
     }
 
     @Test
+    void matchesAFullNameQuery() throws Exception {
+        mockMvc.perform(get("/api/v1/players").param("query", "Anna Schmidt"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].name").value("Anna Schmidt"));
+    }
+
+    @Test
     void idIsSerializedAsAString() throws Exception {
         Long id = playerRepository
                 .findByFirstNameAndLastName("Anna", "Schmidt")

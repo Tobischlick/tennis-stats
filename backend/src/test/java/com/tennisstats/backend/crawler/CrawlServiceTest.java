@@ -3,6 +3,7 @@ package com.tennisstats.backend.crawler;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import ch.qos.logback.classic.Level;
 import com.tennisstats.backend.PostgresTestcontainer;
 import com.tennisstats.backend.domain.Meeting;
 import com.tennisstats.backend.domain.RubberType;
@@ -21,6 +22,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
@@ -39,6 +41,13 @@ class CrawlServiceTest implements PostgresTestcontainer {
     private static final String CHAMPIONSHIP = "B1 S 2026";
     private static final String LEAGUE_URL = BASE_URL + "/leaguePage?championship=B1+S+2026";
     private static final String OTHER_LEAGUE_URL = BASE_URL + "/leaguePage?championship=B2+S+2026";
+
+    private final LogCapture logs = LogCapture.of(CrawlService.class);
+
+    @AfterEach
+    void stopCapturingLogs() {
+        logs.close();
+    }
 
     @Autowired
     private MeetingPersistenceService persistenceService;
@@ -263,6 +272,35 @@ class CrawlServiceTest implements PostgresTestcontainer {
 
         assertThat(fetcher.fetchedUrls).doesNotContain(reportUrl(602L)).contains(reportUrl(601L));
         assertThat(summary).isEqualTo(new CrawlSummary(1, 0, 1, 1, 0));
+    }
+
+    @Test
+    void logsEverySkippedAndCrawledMeetingAtDebug() throws IOException {
+        FakePageFetcher fetcher = new FakePageFetcher(
+                groupPage(
+                        row("&nbsp;", "TC Musterstadt 1", "TC Beispielhausen 1", 701L),
+                        row("01.01.2999 09:30", "TC Musterstadt 2", "TC Beispielhausen 2", 702L),
+                        row("10.05.2026 09:30", "TC Musterstadt 3", "TC Beispielhausen 3", 703L)),
+                fixture("meeting-report.html"));
+
+        crawlService(fetcher, GROUP).crawl();
+
+        assertThat(logs.messages(Level.DEBUG))
+                .containsExactly(
+                        "Meeting 701 skipped: no date",
+                        "Meeting 702 skipped: in the future",
+                        "Meeting 703 crawled: 9 rubbers saved");
+    }
+
+    @Test
+    void logsMeetingsAlreadyStoredWithAResultAsSkipped() throws IOException {
+        crawlService(fixtureFetcher(), GROUP).crawl();
+        crawlService(fixtureFetcher(), GROUP).crawl();
+
+        assertThat(logs.messages(Level.DEBUG))
+                .filteredOn(message -> message.endsWith(" skipped: already has results"))
+                .hasSize(28)
+                .contains("Meeting 12710540 skipped: already has results");
     }
 
     @Test

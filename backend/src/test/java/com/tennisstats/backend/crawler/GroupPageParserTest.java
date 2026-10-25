@@ -1,5 +1,7 @@
 package com.tennisstats.backend.crawler;
 
+import ch.qos.logback.classic.Level;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -15,6 +17,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class GroupPageParserTest {
 
     private final GroupPageParser parser = new GroupPageParser();
+    private final LogCapture logs = LogCapture.of(GroupPageParser.class);
+
+    @AfterEach
+    void stopCapturingLogs() {
+        logs.close();
+    }
 
     private String loadFixture() throws IOException {
         Path path = Path.of("src/test/resources/fixtures/group-page.html");
@@ -26,6 +34,13 @@ class GroupPageParserTest {
         List<ScheduledMeetingDto> meetings = parser.parse(loadFixture());
 
         assertEquals(28, meetings.size());
+    }
+
+    @Test
+    void logsHowManyMeetingsItFoundAtDebug() throws IOException {
+        parser.parse(loadFixture());
+
+        assertEquals(List.of("Group page: 28 meetings found"), logs.messages(Level.DEBUG));
     }
 
     @Test

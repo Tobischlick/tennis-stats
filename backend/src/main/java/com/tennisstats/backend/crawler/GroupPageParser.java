@@ -4,6 +4,8 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -16,6 +18,8 @@ import java.util.regex.Pattern;
  * Parses a nuLiga group/schedule page ("Spielplan") into DTOs. Pure function: no DB, no HTTP.
  */
 public class GroupPageParser {
+
+    private static final Logger log = LoggerFactory.getLogger(GroupPageParser.class);
 
     private static final DateTimeFormatter DATE_TIME_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
     private static final Pattern DATE_TIME_PATTERN = Pattern.compile("\\d{2}\\.\\d{2}\\.\\d{4}\\s+\\d{2}:\\d{2}");
@@ -30,6 +34,7 @@ public class GroupPageParser {
 
         Element scheduleTable = document.select("h2:contains(Spielplan) ~ table").first();
         if (scheduleTable == null) {
+            log.debug("Group page: no schedule table found, 0 meetings");
             return meetings;
         }
 
@@ -56,6 +61,7 @@ public class GroupPageParser {
             meetings.add(new ScheduledMeetingDto(homeTeam, awayTeam, currentDate, meetingId));
         }
 
+        log.debug("Group page: {} meetings found", meetings.size());
         return meetings;
     }
 

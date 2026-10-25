@@ -2,6 +2,7 @@ package com.tennisstats.backend.crawler;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import ch.qos.logback.classic.Level;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -29,6 +30,17 @@ class MatchReportParserTest {
 		assertThat(report.homeTeam()).isEqualTo("TK GW Mannheim 3");
 		assertThat(report.awayTeam()).isEqualTo("TC Weinheim 1902 2");
 		assertThat(report.overallResult()).isEqualTo(new Score(2, 7));
+	}
+
+	@Test
+	void logsHowManyRubbersItFoundAtDebug() throws IOException {
+		String html = Files.readString(Path.of("src/test/resources/fixtures/meeting-report.html"));
+		try (LogCapture logs = LogCapture.of(MatchReportParser.class)) {
+			MatchReportParser.parse(html);
+
+			assertThat(logs.messages(Level.DEBUG))
+					.containsExactly("Match report TK GW Mannheim 3 vs TC Weinheim 1902 2: 6 singles, 3 doubles found");
+		}
 	}
 
 	@Test

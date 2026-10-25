@@ -24,6 +24,9 @@ public class GroupPageParser {
     private static final DateTimeFormatter DATE_TIME_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
     private static final Pattern DATE_TIME_PATTERN = Pattern.compile("\\d{2}\\.\\d{2}\\.\\d{4}\\s+\\d{2}:\\d{2}");
     private static final Pattern MEETING_ID_PATTERN = Pattern.compile("meeting=(\\d+)");
+    // positions in the layout without the optional "Spielort"/"Platz" columns, used when the table has no header row
+    private static final int DEFAULT_HOME_TEAM_COLUMN = 3;
+    private static final int DEFAULT_AWAY_TEAM_COLUMN = 4;
 
     public List<ScheduledMeetingDto> parse(String html) {
         return parse(Jsoup.parse(html));
@@ -38,7 +41,11 @@ public class GroupPageParser {
             return meetings;
         }
 
+        int homeTeamColumn = columnIndex(scheduleTable, "Heimmannschaft", DEFAULT_HOME_TEAM_COLUMN);
+        int awayTeamColumn = columnIndex(scheduleTable, "Gastmannschaft", DEFAULT_AWAY_TEAM_COLUMN);
+
         LocalDateTime currentDate = null;
+        int unparsedReportRows = 0;
         for (Element row : scheduleTable.select("tr")) {
             Elements cells = row.select("> td");
             if (cells.isEmpty()) {
@@ -50,19 +57,46 @@ public class GroupPageParser {
                 currentDate = parsedDate;
             }
 
-            String homeTeam = cellText(cells, 3);
-            String awayTeam = cellText(cells, 4);
+            String homeTeam = cellText(cells, homeTeamColumn);
+            String awayTeam = cellText(cells, awayTeamColumn);
             Long meetingId = extractMeetingId(row);
 
-            if (homeTeam.isEmpty() || awayTeam.isEmpty() || meetingId == null) {
+            if (meetingId == null) {
                 continue; // bye or missing report link
+            }
+            if (homeTeam.isEmpty() || awayTeam.isEmpty()) {
+                unparsedReportRows++;
+                continue;
             }
 
             meetings.add(new ScheduledMeetingDto(homeTeam, awayTeam, currentDate, meetingId));
         }
 
+        if (meetings.isEmpty() && unparsedReportRows > 0) {
+            log.warn("Group page: {} rows link a match report but none has both teams, 0 meetings", unparsedReportRows);
+        }
         log.debug("Group page: {} meetings found", meetings.size());
         return meetings;
+    }
+
+    // header cells can span several columns ("Datum" spans three), so count colspans to find the body cell index
+    private int columnIndex(Element scheduleTable, String header, int fallback) {
+        int column = 0;
+        for (Element headerCell : scheduleTable.select("tr > th")) {
+            if (headerCell.text().trim().equals(header)) {
+                return column;
+            }
+            column += colspan(headerCell);
+        }
+        return fallback;
+    }
+
+    private int colspan(Element cell) {
+        try {
+            return Math.max(1, Integer.parseInt(cell.attr("colspan").trim()));
+        } catch (NumberFormatException e) {
+            return 1;
+        }
     }
 
     private LocalDateTime parseDate(Elements cells) {

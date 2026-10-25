@@ -25,7 +25,11 @@ class GroupPageParserTest {
     }
 
     private String loadFixture() throws IOException {
-        Path path = Path.of("src/test/resources/fixtures/group-page.html");
+        return loadFixture("group-page.html");
+    }
+
+    private String loadFixture(String name) throws IOException {
+        Path path = Path.of("src/test/resources/fixtures", name);
         return Files.readString(path);
     }
 
@@ -76,6 +80,66 @@ class GroupPageParserTest {
         assertEquals("TC Weinheim 1902 2", last.awayTeam());
         assertEquals(LocalDateTime.of(2026, 7, 26, 9, 30), last.date());
         assertEquals(12710475L, last.meetingId());
+    }
+
+    @Test
+    void parsesEveryMeetingWhenTheScheduleHasSpielortAndPlatzColumns() throws IOException {
+        List<ScheduledMeetingDto> meetings = parser.parse(loadFixture("group-page-with-venue.html"));
+
+        assertEquals(10, meetings.size());
+        assertTrue(logs.messages(Level.WARN).isEmpty());
+    }
+
+    @Test
+    void readsTheTeamsFromTheirHeaderColumnsWhenTheScheduleHasSpielortAndPlatzColumns() throws IOException {
+        List<ScheduledMeetingDto> meetings = parser.parse(loadFixture("group-page-with-venue.html"));
+
+        ScheduledMeetingDto first = meetings.get(0);
+        assertEquals("Karlsruher ETV 3", first.homeTeam());
+        assertEquals("TC Bühlertal 1", first.awayTeam());
+        assertEquals(LocalDateTime.of(2026, 5, 10, 9, 30), first.date());
+        assertEquals(12895844L, first.meetingId());
+
+        // the only meeting with a venue filled in ("TC BW Gaggenau" in the Spielort column)
+        ScheduledMeetingDto withVenue = meetings.get(6);
+        assertEquals("TC Gernsbach 1", withVenue.homeTeam());
+        assertEquals("KIT SC 2010 1", withVenue.awayTeam());
+        assertEquals(LocalDateTime.of(2026, 7, 5, 9, 30), withVenue.date());
+        assertEquals(12895987L, withVenue.meetingId());
+    }
+
+    @Test
+    void warnsWhenRowsLinkAReportButNoneHasBothTeams() {
+        String html = """
+                <html><body>
+                <h2>Spielplan</h2>
+                <table cellspacing="0" class="result-set" border="0" cellpadding="0">
+                  <tr>
+                    <th colspan="3">Datum</th>
+                    <th>Heimmannschaft</th>
+                    <th>Gastmannschaft</th>
+                    <th class="center">Spielbericht</th>
+                  </tr>
+                  <tr>
+                    <td>So</td>
+                    <td nowrap="nowrap"> 10.05.2026 09:30 </td>
+                    <td nowrap="nowrap">&nbsp;</td>
+                    <td nowrap="nowrap">&nbsp;</td>
+                    <td nowrap="nowrap">&nbsp;</td>
+                    <td class="center" nowrap="nowrap">
+                      <a href="/cgi-bin/WebObjects/nuLigaTENDE.woa/wa/meetingReport?meeting=7&amp;federation=BAD&amp;championship=B1+S+2026">anzeigen</a>
+                    </td>
+                  </tr>
+                </table>
+                </body></html>
+                """;
+
+        List<ScheduledMeetingDto> meetings = parser.parse(html);
+
+        assertTrue(meetings.isEmpty());
+        assertEquals(
+                List.of("Group page: 1 rows link a match report but none has both teams, 0 meetings"),
+                logs.messages(Level.WARN));
     }
 
     @Test

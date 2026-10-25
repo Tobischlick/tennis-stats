@@ -108,3 +108,11 @@ describe("RecentMatches list", () => {
     expect(screen.queryByText(/weitere/)).toBeNull();
   });
 });
+
+describe("RecentMatches opponents", () => {
+  test("shows 'Unbekannt' when the opponent wasn't named", () => {
+    render(<RecentMatches matches={[match([set(6, 4), set(6, 3)], { opponents: [] })]} />);
+
+    expect(screen.getAllByRole("listitem")[0].textContent).toContain("Unbekannt");
+  });
+});

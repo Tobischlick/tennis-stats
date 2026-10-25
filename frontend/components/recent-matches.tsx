@@ -32,7 +32,7 @@ export function MatchList({ matches }: { matches: RecentMatch[] }) {
           <div className="min-w-0 flex-1">
             <p className="truncate font-medium">
               <span className="sr-only">{m.result === "WIN" ? "Sieg gegen " : "Niederlage gegen "}</span>
-              {m.opponents.map((o) => o.name).join(" / ")}
+              {m.opponents.length > 0 ? m.opponents.map((o) => o.name).join(" / ") : "Unbekannt"}
             </p>
             <p className="truncate text-xs text-muted-foreground">
               {formatShortDate(m.playedOn)} ·{" "}

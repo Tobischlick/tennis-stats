@@ -326,7 +326,7 @@ export interface components {
             /** @enum {string} */
             type: "SINGLES" | "DOUBLES";
             result: components["schemas"]["MatchResult"];
-            /** @description One opponent for singles, two for doubles. */
+            /** @description One opponent for singles, two for doubles. Fewer, or none, when nuLiga lists an opponent the team didn't name ("unbekannt / wird nachgenannt"); such players are left out. */
             opponents: components["schemas"]["PlayerSummary"][];
             /** @description The player's doubles partner; null for singles. */
             partner: components["schemas"]["PlayerSummary"] | null;

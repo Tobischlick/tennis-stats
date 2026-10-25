@@ -218,4 +218,51 @@ class MeetingPersistenceServiceTest implements PostgresTestcontainer {
         assertThat(playerRepository.findAll())
                 .noneMatch(p -> p.getLastName().contains("nicht anwesend") || p.getFirstName().contains("nicht anwesend"));
     }
+
+    @Test
+    void storesADoublesWhoseSideIsTwoUnnamedPlayersWithoutThem() throws IOException {
+        Meeting meeting = persistFixture(12338146L);
+
+        var firstDoubles = meeting.getRubbers().stream()
+                .filter(r -> r.getType() == RubberType.DOUBLES)
+                .filter(r -> r.getPosition() == 7)
+                .findFirst()
+                .orElseThrow();
+        assertThat(firstDoubles.getParticipants())
+                .extracting(p -> p.getSide(), p -> p.getPlayer().getLastName())
+                .containsExactlyInAnyOrder(tuple(Side.AWAY, "Obert"), tuple(Side.AWAY, "Saitta"));
+        assertThat(meeting.getRubbers()).hasSize(9);
+        assertNoPlaceholderPlayer();
+    }
+
+    @Test
+    void keepsAPlayedRubberAgainstOrWithAnUnnamedPlayer() throws IOException {
+        Meeting meeting = persistFixture(12338597L);
+
+        var singlesAgainstUnnamed = meeting.getRubbers().stream()
+                .filter(r -> r.getType() == RubberType.SINGLES)
+                .filter(r -> r.getParticipants().size() == 1)
+                .toList();
+        assertThat(singlesAgainstUnnamed).hasSize(1);
+        assertThat(singlesAgainstUnnamed.get(0).getSets()).hasSize(2);
+        assertThat(meeting.getRubbers())
+                .filteredOn(r -> r.getType() == RubberType.DOUBLES)
+                .filteredOn(r -> r.getParticipants().size() == 3)
+                .hasSize(1);
+        assertNoPlaceholderPlayer();
+    }
+
+    private Meeting persistFixture(long meetingId) throws IOException {
+        String html = Files.readString(Path.of("src/test/resources/fixtures/meeting-report-" + meetingId + ".html"));
+        MatchReport report = MatchReportParser.parse(html);
+        ScheduledMeetingDto scheduled = new ScheduledMeetingDto(
+                report.homeTeam(), report.awayTeam(), LocalDateTime.of(2025, 5, 10, 10, 0), meetingId);
+        persistenceService.persist(scheduled, report);
+        return meetingRepository.findByExternalId(String.valueOf(meetingId)).orElseThrow();
+    }
+
+    private void assertNoPlaceholderPlayer() {
+        assertThat(playerRepository.findAll())
+                .noneMatch(p -> p.getLastName().contains("unbekannt") || p.getFirstName().contains("unbekannt"));
+    }
 }

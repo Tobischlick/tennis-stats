@@ -27,3 +27,10 @@ At DEBUG you also see every nuLiga request (URL, HTTP status and response
 time, without the politeness delay), every skipped meeting and why it was
 skipped, every crawled meeting with its number of saved rubbers, and how many
 groups, meetings or rubbers each parsed page held.
+
+To keep a crawl's log, write it to `logs/` (ignored by git), e.g. with
+Spring Boot's `LOGGING_FILE_NAME`:
+
+```sh
+LOGGING_FILE_NAME=logs/crawl.log ./gradlew bootRun --args='--spring.profiles.active=crawler'
+```

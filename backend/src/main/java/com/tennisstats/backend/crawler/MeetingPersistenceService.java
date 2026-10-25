@@ -60,6 +60,7 @@ public class MeetingPersistenceService {
         Team awayTeam = findOrCreateTeam(scheduledMeeting.awayTeam());
 
         Meeting meeting = findOrCreateMeeting(scheduledMeeting, homeTeam, awayTeam);
+        meeting.setHasResult(matchReport.hasResult());
         // flush the meeting's own field changes now, before the bulk deletes below - a bulk
         // delete doesn't see uncommitted changes, and the refresh that follows it would
         // otherwise overwrite them with the stale pre-update row.

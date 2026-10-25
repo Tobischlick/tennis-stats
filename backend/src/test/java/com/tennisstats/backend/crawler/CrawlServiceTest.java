@@ -233,20 +233,29 @@ class CrawlServiceTest implements PostgresTestcontainer {
     }
 
     @Test
-    void skipsAMeetingStoredAsAWalkoverWithoutAnySets() throws IOException {
-        Team home = teamRepository.save(new Team("TC SW Neckarau 1"));
-        Team away = teamRepository.save(new Team("TC 70 Sandhausen 1"));
-        Meeting walkover = new Meeting(home, away, LocalDate.of(2026, 5, 10));
-        walkover.setExternalId("12710540");
-        walkover.addRubber(RubberType.SINGLES, 1).setRetiredSide(Side.AWAY);
-        meetingRepository.saveAndFlush(walkover);
-        FakePageFetcher fetcher = fixtureFetcher();
+    void skipsAMeetingGivenEntirelyAsAWalkoverOnTheNextRun() throws IOException {
+        FakePageFetcher firstRunFetcher = fixtureFetcher();
+        firstRunFetcher.overrides.put(reportUrl(12710540L), fixture("meeting-report-walkover.html"));
+        crawlService(firstRunFetcher, GROUP).crawl();
+        FakePageFetcher secondRunFetcher = fixtureFetcher();
 
-        CrawlSummary summary = crawlService(fetcher, GROUP).crawl();
+        CrawlSummary summary = crawlService(secondRunFetcher, GROUP).crawl();
 
-        assertThat(fetcher.fetchedUrls).doesNotContain(reportUrl(12710540L));
-        assertThat(summary.meetingsSkipped()).isEqualTo(1);
-        assertThat(summary.meetingsCrawled()).isEqualTo(27);
+        // rubbers against an absent side aren't stored, so the meeting has none to tell it apart by
+        assertThat(meetingRepository.findByExternalId("12710540").orElseThrow().getRubbers()).isEmpty();
+        assertThat(secondRunFetcher.fetchedUrls).containsExactly(GROUP_URL);
+        assertThat(summary).isEqualTo(new CrawlSummary(1, 0, 0, 28, 0));
+    }
+
+    @Test
+    void logsTheRubbersActuallySavedForAWalkoverMeeting() throws IOException {
+        FakePageFetcher fetcher = new FakePageFetcher(
+                groupPage(row("10.05.2026 09:30", "TC Musterstadt 1", "TC Beispielhausen 1", 704L)),
+                fixture("meeting-report-walkover.html"));
+
+        crawlService(fetcher, GROUP).crawl();
+
+        assertThat(logs.messages(Level.DEBUG)).containsExactly("Meeting 704 crawled: 0 rubbers saved");
     }
 
     @Test

@@ -47,6 +47,13 @@ public class Meeting {
     @Column(name = "external_id")
     private String externalId;
 
+    /**
+     * Whether the crawled match report already held a result. A meeting given entirely as a walkover has
+     * one but no stored rubbers (rubbers against an absent side aren't stored), so this is tracked here.
+     */
+    @Column(name = "has_result", nullable = false)
+    private boolean hasResult;
+
     @OneToMany(mappedBy = "meeting", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Rubber> rubbers = new ArrayList<>();
 
@@ -68,6 +75,14 @@ public class Meeting {
 
     public Long getId() {
         return id;
+    }
+
+    public boolean hasResult() {
+        return hasResult;
+    }
+
+    public void setHasResult(boolean hasResult) {
+        this.hasResult = hasResult;
     }
 
     public Team getHomeTeam() {

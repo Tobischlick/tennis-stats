@@ -25,4 +25,10 @@ class CrawlerProfileTest implements PostgresTestcontainer {
     void theCrawlerProfileRegistersExactlyOneRunner() {
         assertThat(context.getBeansOfType(CrawlRunner.class)).hasSize(1);
     }
+
+    @Test
+    void theCrawlerProfileLogsTheCrawlerAtInfoUnlessCrawlerLogLevelIsSet() {
+        assertThat(context.getEnvironment().getProperty("logging.level.com.tennisstats.backend.crawler"))
+                .isEqualTo("INFO");
+    }
 }

@@ -93,16 +93,21 @@ class CrawlService {
             int groupSkipped = 0;
             int groupFailed = 0;
             for (ScheduledMeetingDto meeting : meetings) {
-                if (meeting.date() == null
-                        || meeting.date().toLocalDate().isAfter(today)
-                        || alreadyComplete.contains(String.valueOf(meeting.meetingId()))) {
+                String skipReason = skipReason(meeting, today, alreadyComplete);
+                if (skipReason != null) {
                     groupSkipped++;
+                    log.debug("Meeting {} skipped: {}", meeting.meetingId(), skipReason);
                     continue;
                 }
                 try {
                     String reportHtml = pageFetcher.fetch(reportUrl(group, meeting.meetingId()));
-                    persistenceService.persist(meeting, MatchReportParser.parse(reportHtml));
+                    MatchReport report = MatchReportParser.parse(reportHtml);
+                    persistenceService.persist(meeting, report);
                     groupCrawled++;
+                    log.debug(
+                            "Meeting {} crawled: {} rubbers saved",
+                            meeting.meetingId(),
+                            report.singles().size() + report.doubles().size());
                 } catch (CrawlFailedException e) {
                     throw e;
                 } catch (RuntimeException e) {
@@ -124,6 +129,20 @@ class CrawlService {
         }
 
         return new CrawlSummary(groupsAttempted, groupsFailed, crawled, skipped, failed);
+    }
+
+    /** Why a meeting is not fetched, or {@code null} when it should be. */
+    private static String skipReason(ScheduledMeetingDto meeting, LocalDate today, Set<String> alreadyComplete) {
+        if (meeting.date() == null) {
+            return "no date";
+        }
+        if (meeting.date().toLocalDate().isAfter(today)) {
+            return "in the future";
+        }
+        if (alreadyComplete.contains(String.valueOf(meeting.meetingId()))) {
+            return "already has results";
+        }
+        return null;
     }
 
     private String leaguePageUrl(String championship) {

@@ -2,16 +2,24 @@ package com.tennisstats.backend.crawler;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import ch.qos.logback.classic.Level;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.stream.IntStream;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 class LeaguePageParserTest {
 
     private final LeaguePageParser parser = new LeaguePageParser();
+    private final LogCapture logs = LogCapture.of(LeaguePageParser.class);
+
+    @AfterEach
+    void stopCapturingLogs() {
+        logs.close();
+    }
 
     private String loadFixture() throws IOException {
         return Files.readString(Path.of("src/test/resources/fixtures/league-page.html"));
@@ -25,6 +33,13 @@ class LeaguePageParserTest {
                 .mapToObj(n -> new CrawlerProperties.Group("B1 S 2026", String.valueOf(n)))
                 .toList();
         assertThat(groups).isEqualTo(expected);
+    }
+
+    @Test
+    void logsHowManyGroupsItFoundAtDebug() throws IOException {
+        parser.parse(loadFixture(), "B1 S 2026");
+
+        assertThat(logs.messages(Level.DEBUG)).containsExactly("League page B1 S 2026: 47 groups found");
     }
 
     @Test

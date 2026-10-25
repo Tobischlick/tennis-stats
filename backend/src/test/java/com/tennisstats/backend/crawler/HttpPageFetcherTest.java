@@ -7,9 +7,11 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
+import ch.qos.logback.classic.Level;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -23,6 +25,12 @@ class HttpPageFetcherTest {
 
     private final List<String> events = new ArrayList<>();
     private final List<Duration> sleeps = new ArrayList<>();
+    private final LogCapture logs = LogCapture.of(HttpPageFetcher.class);
+
+    @AfterEach
+    void stopCapturingLogs() {
+        logs.close();
+    }
 
     private static CrawlerProperties properties(Duration requestDelay) {
         return new CrawlerProperties(true, requestDelay, "https://example.test/wa", "BAD", List.of(), List.of());
@@ -77,6 +85,46 @@ class HttpPageFetcherTest {
         server.expect(requestTo(URL)).andRespond(withServerError());
 
         assertThatThrownBy(() -> fetcher.fetch(URL)).isInstanceOf(RestClientException.class);
+    }
+
+    @Test
+    void logsEachRequestWithItsStatusAndDurationAtDebug() {
+        RestClient.Builder builder = RestClient.builder();
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        HttpPageFetcher fetcher = fetcher(builder, Duration.ZERO);
+        server.expect(requestTo(URL)).andRespond(withSuccess("<html>Spielplan</html>", MediaType.TEXT_HTML));
+
+        fetcher.fetch(URL);
+
+        assertThat(logs.messages(Level.DEBUG)).singleElement().asString().matches("GET \\Q" + URL + "\\E -> 200 in \\d+ ms");
+    }
+
+    @Test
+    void logsAnErrorResponseAtDebugToo() {
+        RestClient.Builder builder = RestClient.builder();
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        HttpPageFetcher fetcher = fetcher(builder, Duration.ZERO);
+        server.expect(requestTo(URL)).andRespond(withServerError());
+
+        assertThatThrownBy(() -> fetcher.fetch(URL)).isInstanceOf(RestClientException.class);
+
+        assertThat(logs.messages(Level.DEBUG)).singleElement().asString().startsWith("GET " + URL + " -> 500 in ");
+    }
+
+    @Test
+    void logsAnAnswerThatStopsTheCrawlAsAnError() {
+        RestClient.Builder builder = RestClient.builder();
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        HttpPageFetcher fetcher = fetcher(builder, Duration.ZERO);
+        server.expect(requestTo(URL)).andRespond(withStatus(HttpStatus.TOO_MANY_REQUESTS));
+
+        assertThatThrownBy(() -> fetcher.fetch(URL)).isInstanceOf(CrawlFailedException.class);
+
+        assertThat(logs.messages(Level.ERROR))
+                .singleElement()
+                .asString()
+                .startsWith("GET " + URL + " -> 429 in ")
+                .endsWith("ms, stopping the crawl");
     }
 
     @Test

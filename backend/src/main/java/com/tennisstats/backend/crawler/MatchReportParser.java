@@ -10,6 +10,8 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.tennisstats.backend.domain.Side;
 
@@ -18,6 +20,8 @@ import com.tennisstats.backend.domain.Side;
  * no DB access, no HTTP calls - the caller is responsible for fetching the HTML.
  */
 public final class MatchReportParser {
+
+	private static final Logger log = LoggerFactory.getLogger(MatchReportParser.class);
 
 	private static final Pattern SCORE_PATTERN = Pattern.compile("(\\d+):(\\d+)");
 	private static final String RETIRED_MARKER = "(w.o.)";
@@ -85,6 +89,8 @@ public final class MatchReportParser {
 			}
 		}
 
+		log.debug("Match report {} vs {}: {} singles, {} doubles found", homeTeam, awayTeam, singles.size(),
+				doubles.size());
 		return new MatchReport(homeTeam, awayTeam, overallResult, singles, doubles);
 	}
 

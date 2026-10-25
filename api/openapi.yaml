@@ -1017,8 +1017,10 @@ components:
           $ref: "#/components/schemas/MatchResult"
         opponents:
           type: array
-          description: One opponent for singles, two for doubles.
-          minItems: 1
+          description: >-
+            One opponent for singles, two for doubles. Fewer, or none, when nuLiga lists an opponent
+            the team didn't name ("unbekannt / wird nachgenannt"); such players are left out.
+          minItems: 0
           maxItems: 2
           items:
             $ref: "#/components/schemas/PlayerSummary"

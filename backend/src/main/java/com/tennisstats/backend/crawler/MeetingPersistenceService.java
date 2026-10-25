@@ -28,6 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class MeetingPersistenceService {
 
     private static final String ABSENT_PLAYER_PLACEHOLDER = "Spieler/in nicht anwesend";
+    private static final String UNNAMED_PLAYER_PLACEHOLDER = "unbekannt / wird nachgenannt";
 
     private final TeamRepository teamRepository;
     private final PlayerRepository playerRepository;
@@ -139,6 +140,10 @@ public class MeetingPersistenceService {
      * without an opponent. The caller still advances {@code position}, so stored positions keep
      * matching the report order.
      *
+     * <p>A player the team didn't name is listed as "unbekannt / wird nachgenannt". Such a rubber
+     * may well have been played, so it is stored, just without the placeholder as a participant -
+     * a side can end up with fewer players, or none.
+     *
      * <p>A set is only flagged unfinished for a rubber nuLiga marks as retired: a rubber played to
      * the end is over by definition, whatever its set scores look like.
      */
@@ -151,10 +156,10 @@ public class MeetingPersistenceService {
         var rubber = meeting.addRubber(type, position);
         rubber.setRetiredSide(rubberDto.retiredSide());
 
-        for (String playerName : rubberDto.homePlayers()) {
+        for (String playerName : namedPlayers(rubberDto.homePlayers())) {
             rubber.addParticipant(findOrCreatePlayer(playerName), Side.HOME);
         }
-        for (String playerName : rubberDto.awayPlayers()) {
+        for (String playerName : namedPlayers(rubberDto.awayPlayers())) {
             rubber.addParticipant(findOrCreatePlayer(playerName), Side.AWAY);
         }
 
@@ -171,6 +176,12 @@ public class MeetingPersistenceService {
     }
 
     /** Parses nuLiga's "Lastname, Firstname" player names, e.g. "Pohlmann, Ole". */
+    private static List<String> namedPlayers(List<String> playerNames) {
+        return playerNames.stream()
+                .filter(name -> !name.startsWith(UNNAMED_PLAYER_PLACEHOLDER))
+                .toList();
+    }
+
     private Player findOrCreatePlayer(String rawName) {
         List<String> parts = List.of(rawName.split(",", 2));
         String lastName = parts.get(0).trim();

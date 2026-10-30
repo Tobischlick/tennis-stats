@@ -7,7 +7,13 @@
   //
   // config:recommended also restricts Java (toolchain, actions/setup-java) to
   // LTS releases via workarounds:javaLTSVersions, so no extra Java rule here.
-  extends: ["config:recommended"],
+  //
+  // helpers:pinGitHubActionDigests pins actions and reusable workflows to a
+  // commit SHA and keeps those digests (and their "# vX.Y.Z" comments) updated.
+  //
+  // backend/gradle.lockfile is updated in the same PR as the Gradle
+  // dependency it locks; that needs no extra config.
+  extends: ["config:recommended", "helpers:pinGitHubActionDigests"],
 
   // One quiet daily window; security alerts bypass the schedule.
   timezone: "Europe/Berlin",

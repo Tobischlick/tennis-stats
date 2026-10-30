@@ -1,0 +1,10 @@
+# OSV-Scanner config, passed via --config so it applies to every lockfile in
+# the repo (see .github/workflows/osv-scanner.yml).
+#
+# Only ignore a vulnerability that doesn't affect us, and always give a reason
+# and an expiry date so the ignore gets re-checked:
+#
+# [[IgnoredVulns]]
+# id = "GHSA-xxxx-xxxx-xxxx"
+# effectiveUntil = 2026-12-31
+# reason = "Vulnerable code path is never called: <why>"

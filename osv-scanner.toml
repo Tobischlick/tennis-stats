@@ -6,5 +6,10 @@
 #
 # [[IgnoredVulns]]
 # id = "GHSA-xxxx-xxxx-xxxx"
-# effectiveUntil = 2026-12-31
+# ignoreUntil = 2026-12-31
 # reason = "Vulnerable code path is never called: <why>"
+
+[[IgnoredVulns]]
+id = "GHSA-gcqx-w48m-w2h4"
+ignoreUntil = 2027-01-31
+reason = "deepmerge has no fixed release (all of <= 4.3.1 affected). Only the shadcn CLI uses it to scaffold components; it never runs in the app. Re-check for a fixed deepmerge or shadcn release before expiry."
